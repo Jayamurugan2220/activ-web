@@ -4,10 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, ArrowRight, Upload } from "lucide-react";
+import { UserPlus, ArrowRight, Upload, Building, MapPin, User } from "lucide-react";
 import { toast } from "sonner";
 import { INDIA_DISTRICTS } from "@/data/india-districts";
 
@@ -30,6 +31,18 @@ const MemberRegister = () => {
   };
 
   type Step2Form = {
+    memberType: string;
+    businessName?: string;
+    udyamNumber?: string;
+    businessAddress?: string;
+    businessPincode?: string;
+    businessPhone?: string;
+    businessEmail?: string;
+    businessWebsite?: string;
+    businessDescription?: string;
+  };
+
+  type Step3Form = {
     memberName: string;
     password: string;
     confirmPassword: string;
@@ -37,17 +50,24 @@ const MemberRegister = () => {
     districtName: string;
     block: string;
     address: string;
+    pincode: string;
   };
 
   const { register: registerStep1, handleSubmit: handleSubmitStep1, control: controlStep1, formState: { errors: errorsStep1 } } = useForm<Step1Form>({ mode: 'onBlur' });
-  const { register: registerStep2, handleSubmit: handleSubmitStep2, control: controlStep2, watch: watchStep2, formState: { errors: errorsStep2 } } = useForm<Step2Form>({ mode: 'onBlur' });
+  const { register: registerStep2, handleSubmit: handleSubmitStep2, control: controlStep2, formState: { errors: errorsStep2 } } = useForm<Step2Form>({ mode: 'onBlur' });
+  const { register: registerStep3, handleSubmit: handleSubmitStep3, control: controlStep3, watch: watchStep3, formState: { errors: errorsStep3 } } = useForm<Step3Form>({ mode: 'onBlur' });
 
   const handleStep1Submit = (data: Step1Form) => {
-    setPartialData(data);
+    setPartialData(prev => ({ ...prev, ...data }));
     setStep(2);
   };
 
-  const handleStep2Submit = async (data: Step2Form) => {
+  const handleStep2Submit = (data: Step2Form) => {
+    setPartialData(prev => ({ ...prev, ...data }));
+    setStep(3);
+  };
+
+  const handleStep3Submit = async (data: Step3Form) => {
     if (data.password !== data.confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -55,12 +75,11 @@ const MemberRegister = () => {
 
     const combined = {
       ...partialData,
+      ...data,
       memberId: data.memberName,
       password: data.password,
       state: data.stateName,
       district: data.districtName,
-      block: data.block,
-      address: data.address,
       registeredAt: new Date().toISOString(),
     };
 
@@ -80,6 +99,8 @@ const MemberRegister = () => {
         password: data.password,
         email: partialData.email,
         firstName: partialData.firstName,
+        memberType: partialData.memberType,
+        businessName: partialData.businessName,
         registeredAt: new Date().toISOString(),
       });
 
@@ -89,7 +110,14 @@ const MemberRegister = () => {
         const res = await fetch('http://localhost:4000/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memberId: data.memberName, password: data.password, email: partialData.email, firstName: partialData.firstName }),
+          body: JSON.stringify({ 
+            memberId: data.memberName, 
+            password: data.password, 
+            email: partialData.email, 
+            firstName: partialData.firstName,
+            memberType: partialData.memberType,
+            businessName: partialData.businessName
+          }),
         });
 
         if (res.ok) {
@@ -129,7 +157,7 @@ const MemberRegister = () => {
     }
   };
 
-  const watchedState = watchStep2 ? watchStep2('stateName') : null;
+  const watchedState = watchStep3 ? watchStep3('stateName') : null;
   useEffect(() => {
     if (watchedState) {
       setDistricts(INDIA_DISTRICTS[watchedState] ?? []);
@@ -149,18 +177,22 @@ const MemberRegister = () => {
                 <UserPlus className="w-8 h-8 lg:w-10 lg:h-10 text-primary-foreground" />
               </div>
               <h2 className="text-2xl lg:text-4xl font-bold mb-1">Member Registration</h2>
-              <p className="text-muted-foreground mb-3 text-sm lg:text-base">Step {step} of 2</p>
+              <p className="text-muted-foreground mb-3 text-sm lg:text-base">Step {step} of 3</p>
 
               <div className="w-full max-w-md mx-auto lg:mx-0 bg-white/30 rounded-full h-2 mb-3">
-                <div className={`h-2 rounded-full bg-blue-600`} style={{ width: step === 1 ? '45%' : '100%' }} />
+                <div className={`h-2 rounded-full bg-blue-600`} style={{ width: step === 1 ? '33%' : step === 2 ? '66%' : '100%' }} />
               </div>
 
               <div className="flex gap-4 justify-center lg:justify-start text-sm lg:text-sm text-blue-600">
                 <div className={`flex items-center gap-2 ${step === 1 ? 'font-semibold' : 'text-gray-500'}`}>
                   <span className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center">•</span>
-                  <span>Personal Info</span>
+                  <span>Personal</span>
                 </div>
                 <div className={`flex items-center gap-2 ${step === 2 ? 'font-semibold' : 'text-gray-500'}`}>
+                  <span className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center">•</span>
+                  <span>Business</span>
+                </div>
+                <div className={`flex items-center gap-2 ${step === 3 ? 'font-semibold' : 'text-gray-500'}`}>
                   <span className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center">•</span>
                   <span>Location</span>
                 </div>
@@ -180,15 +212,20 @@ const MemberRegister = () => {
                   <form onSubmit={handleSubmitStep1(handleStep1Submit)} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="firstName">Full Name*</Label>
-                        <Input id="firstName" placeholder="Enter your full name" {...registerStep1('firstName', { required: 'First name is required' })} />
+                        <Label htmlFor="firstName">First Name*</Label>
+                        <Input id="firstName" placeholder="Enter your first name" {...registerStep1('firstName', { required: 'First name is required' })} />
                         {errorsStep1.firstName && <p className="text-xs text-red-600 mt-1">{errorsStep1.firstName.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="mobile">Phone Number*</Label>
-                        <Input id="mobile" placeholder="+91 XXXXXX XXXXX" {...registerStep1('mobile', { required: 'Phone number required', pattern: { value: /^\+?\d{10,15}$/, message: 'Enter a valid phone number' } })} />
-                        {errorsStep1.mobile && <p className="text-xs text-red-600 mt-1">{errorsStep1.mobile.message}</p>}
+                        <Label htmlFor="lastName">Last Name</Label>
+                        <Input id="lastName" placeholder="Enter your last name" {...registerStep1('lastName')} />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="mobile">Phone Number*</Label>
+                      <Input id="mobile" placeholder="+91 XXXXXX XXXXX" {...registerStep1('mobile', { required: 'Phone number required', pattern: { value: /^\+?\d{10,15}$/, message: 'Enter a valid phone number' } })} />
+                      {errorsStep1.mobile && <p className="text-xs text-red-600 mt-1">{errorsStep1.mobile.message}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -199,11 +236,11 @@ const MemberRegister = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="dob">Date of Birth*</Label>
+                        <Label htmlFor="dob">Date of Birth</Label>
                         <Input id="dob" type="date" {...registerStep1('dob')} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="gender">Gender*</Label>
+                        <Label htmlFor="gender">Gender</Label>
                         <Controller
                           control={controlStep1}
                           name="gender"
@@ -220,41 +257,109 @@ const MemberRegister = () => {
                             </Select>
                           )}
                         />
-                        
                       </div>
                     </div>
-
-                    {/* Password set kept in step 2 - skipping on step1 */}
 
                     <div className="flex justify-end">
                       <Button type="submit" className="bg-blue-600 text-white">Next</Button>
                     </div>
                   </form>
-                ) : (
+                ) : step === 2 ? (
                   <form onSubmit={handleSubmitStep2(handleStep2Submit)} className="space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="memberId">Member Name</Label>
-                      <Input id="memberId" placeholder="Member Name" {...registerStep2('memberName', { required: 'Member Name required' })} />
-                      {errorsStep2.memberName && <p className="text-xs text-red-600 mt-1">{errorsStep2.memberName.message}</p>}
+                      <Label htmlFor="memberType">Member Type*</Label>
+                      <Controller
+                        control={controlStep2}
+                        name="memberType"
+                        rules={{ required: 'Member type is required' }}
+                        render={({ field }) => (
+                          <Select value={field.value || ''} onValueChange={(v: string) => field.onChange(v)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select member type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="individual">Individual</SelectItem>
+                              <SelectItem value="shg">SHG (Self Help Group)</SelectItem>
+                              <SelectItem value="fpo">FPO (Farmer Producer Organization)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      {errorsStep2.memberType && <p className="text-xs text-red-600 mt-1">{errorsStep2.memberType.message}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="businessName">Business Name</Label>
+                      <Input id="businessName" placeholder="Enter your business name" {...registerStep2('businessName')} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="udyamNumber">Udyam Number</Label>
+                      <Input id="udyamNumber" placeholder="UDYAMXXXXXXXXXX" {...registerStep2('udyamNumber')} />
+                      <p className="text-xs text-muted-foreground">Format validation only (no API verification)</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="businessAddress">Business Address</Label>
+                      <Textarea id="businessAddress" placeholder="Enter your business address" {...registerStep2('businessAddress')} />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="businessPincode">Business Pincode</Label>
+                        <Input id="businessPincode" placeholder="XXXXXX" {...registerStep2('businessPincode')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="businessPhone">Business Phone</Label>
+                        <Input id="businessPhone" placeholder="+91 XXXXXX XXXXX" {...registerStep2('businessPhone')} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="businessEmail">Business Email</Label>
+                      <Input id="businessEmail" type="email" placeholder="business@example.com" {...registerStep2('businessEmail')} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="businessWebsite">Business Website</Label>
+                      <Input id="businessWebsite" placeholder="https://www.example.com" {...registerStep2('businessWebsite')} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="businessDescription">Business Description</Label>
+                      <Textarea id="businessDescription" placeholder="Describe your business..." {...registerStep2('businessDescription')} />
+                    </div>
+
+                    <div className="flex justify-between">
+                      <Button type="button" variant="outline" onClick={() => setStep(1)}>Previous</Button>
+                      <Button type="submit" className="bg-blue-600 text-white">Next</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleSubmitStep3(handleStep3Submit)} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="memberId">Member ID*</Label>
+                      <Input id="memberId" placeholder="Choose a unique member ID" {...registerStep3('memberName', { required: 'Member ID required' })} />
+                      {errorsStep3.memberName && <p className="text-xs text-red-600 mt-1">{errorsStep3.memberName.message}</p>}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="password">Password*</Label>
-                        <Input id="password" type="password" placeholder="Enter Password" {...registerStep2('password', { required: 'Password required', minLength: { value: 6, message: 'At least 6 characters' } })} />
-                        {errorsStep2.password && <p className="text-xs text-red-600 mt-1">{errorsStep2.password.message}</p>}
+                        <Input id="password" type="password" placeholder="Enter Password" {...registerStep3('password', { required: 'Password required', minLength: { value: 6, message: 'At least 6 characters' } })} />
+                        {errorsStep3.password && <p className="text-xs text-red-600 mt-1">{errorsStep3.password.message}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="confirmPassword">Confirm Password*</Label>
-                        <Input id="confirmPassword" type="password" placeholder="Confirm Password" {...registerStep2('confirmPassword', { required: 'Please confirm password' })} />
-                        {errorsStep2.confirmPassword && <p className="text-xs text-red-600 mt-1">{errorsStep2.confirmPassword.message}</p>}
+                        <Input id="confirmPassword" type="password" placeholder="Confirm Password" {...registerStep3('confirmPassword', { required: 'Please confirm password' })} />
+                        {errorsStep3.confirmPassword && <p className="text-xs text-red-600 mt-1">{errorsStep3.confirmPassword.message}</p>}
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="state">State*</Label>
                       <Controller
-                        control={controlStep2}
+                        control={controlStep3}
                         name="stateName"
                         rules={{ required: 'State is required' }}
                         render={({ field }) => (
@@ -270,13 +375,13 @@ const MemberRegister = () => {
                           </Select>
                         )}
                       />
-                      {errorsStep2.stateName && <p className="text-xs text-red-600 mt-1">{errorsStep2.stateName.message}</p>}
+                      {errorsStep3.stateName && <p className="text-xs text-red-600 mt-1">{errorsStep3.stateName.message}</p>}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="district">District*</Label>
                       <Controller
-                        control={controlStep2}
+                        control={controlStep3}
                         name="districtName"
                         rules={{ required: 'District is required' }}
                         render={({ field }) => (
@@ -299,24 +404,30 @@ const MemberRegister = () => {
                           </Select>
                         )}
                       />
-                      {errorsStep2.districtName && <p className="text-xs text-red-600 mt-1">{errorsStep2.districtName.message}</p>}
+                      {errorsStep3.districtName && <p className="text-xs text-red-600 mt-1">{errorsStep3.districtName.message}</p>}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="block">Block*</Label>
-                      <Input id="block" placeholder="Block" {...registerStep2('block', { required: 'Block required' })} />
-                      {errorsStep2.block && <p className="text-xs text-red-600 mt-1">{errorsStep2.block.message}</p>}
+                      <Input id="block" placeholder="Block" {...registerStep3('block', { required: 'Block required' })} />
+                      {errorsStep3.block && <p className="text-xs text-red-600 mt-1">{errorsStep3.block.message}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="address">Complete Address*</Label>
-                      <Input id="address" placeholder="Complete address" {...registerStep2('address', { required: 'Address required' })} />
-                      {errorsStep2.address && <p className="text-xs text-red-600 mt-1">{errorsStep2.address.message}</p>}
+                      <Label htmlFor="address">Residential Address*</Label>
+                      <Textarea id="address" placeholder="Complete residential address" {...registerStep3('address', { required: 'Address required' })} />
+                      {errorsStep3.address && <p className="text-xs text-red-600 mt-1">{errorsStep3.address.message}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="pincode">Pincode*</Label>
+                      <Input id="pincode" placeholder="XXXXXX" {...registerStep3('pincode', { required: 'Pincode required' })} />
+                      {errorsStep3.pincode && <p className="text-xs text-red-600 mt-1">{errorsStep3.pincode.message}</p>}
                     </div>
 
                     <div className="flex justify-between">
-                      <Button type="button" variant="outline" onClick={() => setStep(1)}>Previous</Button>
-                      <Button type="submit" className="bg-blue-600 text-white">Submit</Button>
+                      <Button type="button" variant="outline" onClick={() => setStep(2)}>Previous</Button>
+                      <Button type="submit" className="bg-blue-600 text-white">Submit Registration</Button>
                     </div>
                   </form>
                 )}

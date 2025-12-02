@@ -27,6 +27,41 @@ import Settings from "./pages/admin/Settings";
 import ApplicationView from "./pages/admin/ApplicationView";
 import SuperAdminGenerate from "./pages/admin/SuperAdminGenerate";
 
+// Payment Components
+import PaymentHistory from "./pages/member/payments/History";
+import MembershipRenewal from "./pages/member/payments/Membership";
+import Donate from "./pages/member/payments/Donate";
+
+// Notification Settings
+import NotificationSettings from "./pages/member/NotificationSettings";
+
+// Marketplace Components
+import B2BCatalog from "./pages/marketplace/B2BCatalog";
+import B2CCatalog from "./pages/marketplace/B2CCatalog";
+import ProductDetail from "./pages/marketplace/ProductDetail";
+import SellerDashboard from "./pages/member/SellerDashboard";
+
+// Shopping Cart and Order Management
+import Cart from "./pages/marketplace/Cart";
+import Checkout from "./pages/marketplace/Checkout";
+import OrderConfirmation from "./pages/marketplace/OrderConfirmation";
+import Orders from "./pages/marketplace/Orders";
+
+// Business Showcase
+import BusinessShowcase from "./pages/member/BusinessShowcase";
+import BusinessDirectory from "./pages/member/BusinessDirectory";
+
+// Inventory Tracking
+import Inventory from "./pages/member/Inventory";
+import InventoryAlerts from "./pages/member/InventoryAlerts";
+
+// WhatsApp Sharing
+import WhatsAppSharing from "./pages/member/WhatsAppSharing";
+import SharedCatalog from "./pages/member/SharedCatalog";
+
+// Social Login
+import SocialCallback from "./pages/member/SocialCallback";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -49,11 +84,46 @@ const App = () => (
           <Route path="/member/sidebar" element={<SidebarPage />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/notifications" element={<Notifications />} />
-            <Route path="/member/adf" element={<ADFForm />} />
-            <Route path="/member/certificate" element={<MemberCertificate />} />
-            <Route path="/member/profile" element={<MemberProfile />} />
-            <Route path="/member/help" element={<MemberHelp />} />
-            <Route path="/member/events" element={<MemberEvents />} />
+          <Route path="/member/adf" element={<ADFForm />} />
+          <Route path="/member/certificate" element={<MemberCertificate />} />
+          <Route path="/member/profile" element={<MemberProfile />} />
+          <Route path="/member/help" element={<MemberHelp />} />
+          <Route path="/member/events" element={<MemberEvents />} />
+          
+          {/* Payment Routes */}
+          <Route path="/member/payments/history" element={<PaymentHistory />} />
+          <Route path="/member/payments/membership" element={<MembershipRenewal />} />
+          <Route path="/member/payments/donate" element={<Donate />} />
+          
+          {/* Notification Settings */}
+          <Route path="/member/notification-settings" element={<NotificationSettings />} />
+          
+          {/* Marketplace Routes */}
+          <Route path="/marketplace/b2b" element={<B2BCatalog />} />
+          <Route path="/marketplace/b2c" element={<B2CCatalog />} />
+          <Route path="/marketplace/product/:id" element={<ProductDetail />} />
+          <Route path="/member/seller/dashboard" element={<SellerDashboard />} />
+          
+          {/* Shopping Cart and Order Management */}
+          <Route path="/marketplace/cart" element={<Cart />} />
+          <Route path="/marketplace/checkout" element={<Checkout />} />
+          <Route path="/marketplace/order-confirmation" element={<OrderConfirmation />} />
+          <Route path="/marketplace/orders" element={<Orders />} />
+          
+          {/* Business Showcase */}
+          <Route path="/member/business/showcase" element={<BusinessShowcase />} />
+          <Route path="/member/business/directory" element={<BusinessDirectory />} />
+          
+          {/* Inventory Tracking */}
+          <Route path="/member/inventory" element={<Inventory />} />
+          <Route path="/member/inventory/alerts" element={<InventoryAlerts />} />
+          
+          {/* WhatsApp Sharing */}
+          <Route path="/member/whatsapp/share" element={<WhatsAppSharing />} />
+          <Route path="/catalog/:catalogId" element={<SharedCatalog />} />
+          
+          {/* Social Login Callback */}
+          <Route path="/auth/callback/:provider" element={<SocialCallback />} />
           
           {/* Admin Routes */}
           <Route path="/admin/block/login" element={<BlockLogin />} />

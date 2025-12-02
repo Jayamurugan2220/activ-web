@@ -5,11 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserCircle, Lock } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { 
+  UserCircle, 
+  Lock, 
+  Eye, 
+  EyeOff,
+  Chrome,
+  Facebook,
+  Linkedin
+} from "lucide-react";
 import { toast } from "sonner";
 
 const MemberLogin = () => {
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<{ memberId: string; password: string }>({ mode: 'onBlur' });
 
   const handleLogin = async (data: { memberId: string; password: string }) => {
@@ -64,6 +74,12 @@ const MemberLogin = () => {
     }
   };
 
+  const handleSocialLogin = (provider: string) => {
+    toast.info(`Logging in with ${provider}...`);
+    // In a real app, this would redirect to the OAuth provider
+    console.log(`Social login with ${provider}`);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-strong gradient-card border-0">
@@ -72,18 +88,42 @@ const MemberLogin = () => {
             <UserCircle className="w-10 h-10 text-primary-foreground" />
           </div>
           <CardTitle className="text-3xl font-bold">Member Login</CardTitle>
-          <CardDescription>Access your VJS member portal</CardDescription>
+          <CardDescription>Access your ACTIV member portal</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(handleLogin)} className="space-y-6">
+          <form onSubmit={handleSubmit(handleLogin)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="memberId">Member ID</Label>
-              <Input id="memberId" placeholder="Enter your member ID" {...register('memberId', { required: 'Member ID is required' })} />
+              <Input 
+                id="memberId" 
+                placeholder="Enter your member ID" 
+                {...register('memberId', { required: 'Member ID is required' })} 
+              />
               {errors.memberId && <p className="text-xs text-red-600 mt-1">{errors.memberId.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="Enter your password" {...register('password', { required: 'Password is required' })} />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="Enter your password" 
+                  {...register('password', { required: 'Password is required' })} 
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
               {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>}
             </div>
             <div className="flex justify-end">
@@ -95,13 +135,54 @@ const MemberLogin = () => {
               <Lock className="w-4 h-4 mr-2" />
               Login
             </Button>
-            <div className="text-center text-sm">
-              <span className="text-muted-foreground">New Member? </span>
-              <Link to="/member/register" className="text-primary hover:underline font-medium">
-                Register Here
-              </Link>
-            </div>
           </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex items-center justify-center"
+                onClick={() => handleSocialLogin("Google")}
+              >
+                <Chrome className="w-5 h-5 text-red-500" />
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex items-center justify-center"
+                onClick={() => handleSocialLogin("Facebook")}
+              >
+                <Facebook className="w-5 h-5 text-blue-600" />
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex items-center justify-center"
+                onClick={() => handleSocialLogin("LinkedIn")}
+              >
+                <Linkedin className="w-5 h-5 text-blue-700" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center text-sm">
+            <span className="text-muted-foreground">New Member? </span>
+            <Link to="/member/register" className="text-primary hover:underline font-medium">
+              Register Here
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

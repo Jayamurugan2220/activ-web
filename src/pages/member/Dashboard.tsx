@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu } from "lucide-react";
+import { Menu, User, FileText, ShoppingCart, Bell, Settings, CreditCard, BarChart3, Package, Store } from "lucide-react";
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import MobileMenu from "@/components/MobileMenu";
@@ -12,15 +12,28 @@ const MemberDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userName, setUserName] = useState("");
   const [isFirstVisit, setIsFirstVisit] = useState(true);
+  const [memberType, setMemberType] = useState("individual");
+  const [businessName, setBusinessName] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     // Get user name from localStorage (set during login/registration)
     const storedUserName = localStorage.getItem("userName");
     const hasVisitedBefore = localStorage.getItem("hasVisitedDashboard");
-
+    const registrationData = localStorage.getItem("registrationData");
+    
     if (storedUserName) {
       setUserName(storedUserName);
+    }
+    
+    if (registrationData) {
+      try {
+        const data = JSON.parse(registrationData);
+        setMemberType(data.memberType || "individual");
+        setBusinessName(data.businessName || "");
+      } catch (e) {
+        console.error("Error parsing registration data", e);
+      }
     }
 
     if (hasVisitedBefore) {
@@ -48,6 +61,9 @@ const MemberDashboard = () => {
         p.district,
         p.block,
         p.address,
+        p.memberType,
+        p.businessName,
+        p.udyamNumber
       ];
       const filled = fields.filter((f: any) => !!f && `${f}`.trim() !== "").length;
       return Math.round((filled / fields.length) * 100) || 0;
@@ -57,6 +73,16 @@ const MemberDashboard = () => {
   };
 
   const completionPercentage = computeProfileCompletion();
+
+  // Get member type display name
+  const getMemberTypeDisplayName = (type: string) => {
+    switch (type) {
+      case "individual": return "Individual Member";
+      case "shg": return "SHG Member";
+      case "fpo": return "FPO Member";
+      default: return "Member";
+    }
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -105,19 +131,11 @@ const MemberDashboard = () => {
                   <h2 className="text-xl font-bold md:text-2xl">
                     {isFirstVisit ? "Welcome" : "Welcome back"}, {userName || "Member"}
                   </h2>
-                  <p className="text-muted-foreground">TechCorp Solution</p>
+                  <p className="text-muted-foreground">{getMemberTypeDisplayName(memberType)}</p>
+                  {businessName && (
+                    <p className="text-sm text-muted-foreground">{businessName}</p>
+                  )}
                 </div>
-              </div>
-            </div>
-
-            {/* Search bar - improved mobile responsiveness */}
-            <div className="mb-6">
-              <div className="w-full">
-                <input
-                  aria-label="Search by location"
-                  placeholder="Search by location..."
-                  className="w-full border border-gray-200 rounded-full px-4 py-2 shadow-sm bg-white"
-                />
               </div>
             </div>
 
@@ -151,33 +169,121 @@ const MemberDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Quick actions grid - mobile optimized (single set, clickable) */}
+            {/* Quick actions grid - mobile optimized */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <Card className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/member/adf")}>
+              <Card className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/member/profile")}>
                 <div className="bg-blue-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                  <span className="text-blue-600 font-bold">ADF</span>
+                  <User className="w-6 h-6 text-blue-600" />
                 </div>
-                <h4 className="font-medium">ADF Form</h4>
+                <h4 className="font-medium">My Profile</h4>
               </Card>
+              
               <Card className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/member/certificate")}>
                 <div className="bg-green-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                  <span className="text-green-600 font-bold">CERT</span>
+                  <FileText className="w-6 h-6 text-green-600" />
                 </div>
-                <h4 className="font-medium">Certificate</h4>
+                <h4 className="font-medium">Certificates</h4>
               </Card>
-              <Card className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/member/help")}>
-                <div className="bg-purple-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                  <span className="text-purple-600 font-bold">HELP</span>
-                </div>
-                <h4 className="font-medium">Help Center</h4>
-              </Card>
+              
               <Card className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/member/events")}>
-                <div className="bg-orange-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                  <span className="text-orange-600 font-bold">EV</span>
+                <div className="bg-purple-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                  <Bell className="w-6 h-6 text-purple-600" />
                 </div>
-                <h4 className="font-medium">Events</h4>
+                <h4 className="font-medium">Notifications</h4>
+              </Card>
+              
+              <Card className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/member/help")}>
+                <div className="bg-orange-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                  <Settings className="w-6 h-6 text-orange-600" />
+                </div>
+                <h4 className="font-medium">Support</h4>
               </Card>
             </div>
+
+            {/* Business & Payments Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <Card className="shadow-medium border-0">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Store className="w-5 h-5" />
+                    Business Center
+                  </h3>
+                  <div className="space-y-3">
+                    <Button variant="outline" className="w-full justify-between" onClick={() => navigate("/member/business/showcase")}>
+                      Business Showcase
+                      <BarChart3 className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" className="w-full justify-between" onClick={() => navigate("/member/products")}>
+                      My Products
+                      <Package className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" className="w-full justify-between" onClick={() => navigate("/member/inventory")}>
+                      Inventory Tracking
+                      <Package className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="shadow-medium border-0">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <CreditCard className="w-5 h-5" />
+                    Payments & Membership
+                  </h3>
+                  <div className="space-y-3">
+                    <Button variant="outline" className="w-full justify-between" onClick={() => navigate("/member/payments/history")}>
+                      Payment History
+                      <FileText className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" className="w-full justify-between" onClick={() => navigate("/member/payments/membership")}>
+                      Renew Membership
+                      <CreditCard className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" className="w-full justify-between" onClick={() => navigate("/member/payments/donate")}>
+                      Make Donation
+                      <CreditCard className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Marketplace Section */}
+            <Card className="shadow-medium border-0 mb-6">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Marketplace</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/marketplace/b2b")}>
+                    <div className="bg-indigo-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                      <ShoppingCart className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <h4 className="font-medium">B2B Catalog</h4>
+                  </Card>
+                  
+                  <Card className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/marketplace/b2c")}>
+                    <div className="bg-pink-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                      <ShoppingCart className="w-6 h-6 text-pink-600" />
+                    </div>
+                    <h4 className="font-medium">B2C Shop</h4>
+                  </Card>
+                  
+                  <Card className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/marketplace/inquiries")}>
+                    <div className="bg-yellow-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                      <FileText className="w-6 h-6 text-yellow-600" />
+                    </div>
+                    <h4 className="font-medium">Inquiries</h4>
+                  </Card>
+                  
+                  <Card className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/marketplace/orders")}>
+                    <div className="bg-teal-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                      <Package className="w-6 h-6 text-teal-600" />
+                    </div>
+                    <h4 className="font-medium">My Orders</h4>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

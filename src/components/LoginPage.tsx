@@ -1,31 +1,52 @@
-import { useState, useEffect } from "react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Card } from "./ui/card";
-import { FaGoogle, FaFacebook, FaLinkedin } from "react-icons/fa";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { 
+  UserCircle, 
+  Lock, 
+  Eye, 
+  EyeOff,
+  Chrome,
+  Facebook,
+  Linkedin
+} from "lucide-react";
 import { toast } from "sonner";
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const LoginPage = () => {
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    identifier: "",
+    password: ""
+  });
 
-  const handleSocialLogin = (provider: string) => {
-    // Implement social login logic here
-    console.log(`Logging in with ${provider}`);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const navigate = useNavigate();
-
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.identifier || !formData.password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
     try {
-      // Try backend login first
+      // Try backend auth first
       try {
         const res = await fetch('http://localhost:4000/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier: email, password }),
+          body: JSON.stringify({ identifier: formData.identifier, password: formData.password }),
         });
 
         if (res.ok) {
@@ -38,132 +59,152 @@ export default function LoginPage() {
           return;
         }
       } catch (err) {
-        // no backend — fallback to localStorage
+        // ignore and fall back to localStorage
       }
 
-      const usersJson = localStorage.getItem('users');
+      const usersJson = localStorage.getItem("users");
       if (!usersJson) {
-        toast.error('No registered users found. Please register first.');
+        toast.error("No registered users found. Please register first.");
         return;
       }
 
       const users = JSON.parse(usersJson) as Array<any>;
-      // allow login by email or memberId
-      const found = users.find((u) => u.email === email || u.memberId === email);
+      const found = users.find((u) => u.memberId === formData.identifier);
       if (!found) {
-        toast.error('No account matches that email or member ID');
+        toast.error("No account found with that Member ID");
         return;
       }
 
-      if (found.password !== password) {
-        toast.error('Invalid credentials');
+      if (found.password !== formData.password) {
+        toast.error("Invalid credentials");
         return;
       }
 
-      localStorage.setItem('userName', found.firstName || found.email || found.memberId);
-      localStorage.setItem('memberId', found.memberId);
-      localStorage.setItem('isLoggedIn', 'true');
-      navigate('/member/dashboard');
+      // Set logged-in session info
+      localStorage.setItem("userName", found.firstName || found.email || found.memberId);
+      localStorage.setItem("memberId", found.memberId);
+      localStorage.setItem("isLoggedIn", "true");
+      navigate("/member/dashboard");
     } catch (err) {
       console.error(err);
-      toast.error('Login failed. Please try again later.');
+      toast.error("Login failed. Please try again later.");
     }
   };
 
-  // if already logged in, redirect to dashboard
-  useEffect(() => {
-    const logged = localStorage.getItem('isLoggedIn');
-    if (logged === 'true') navigate('/member/dashboard');
-  }, [navigate]);
+  const handleSocialLogin = (provider: string) => {
+    toast.info(`Logging in with ${provider}...`);
+    // In a real app, this would redirect to the OAuth provider
+    console.log(`Social login with ${provider}`);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8 space-y-6 bg-white/95 backdrop-blur shadow-xl rounded-2xl">
-        <div className="text-center space-y-2">
-          <div className="inline-block p-2 rounded-full bg-blue-100 mb-2">
-            <img
-              src="/placeholder.svg"
-              alt="Logo"
-              className="w-12 h-12"
-            />
+      <Card className="w-full max-w-md shadow-strong gradient-card border-0">
+        <CardHeader className="space-y-2 text-center">
+          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-2">
+            <UserCircle className="w-10 h-10 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">ACTIV Portal</h1>
-          <p className="text-gray-500">Sign in to your account or create a new one</p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <Button
-              variant="outline"
-              className="w-full hover:bg-transparent"
-              onClick={() => handleSocialLogin("Google")}
-            >
-              <FaGoogle className="w-5 h-5 text-red-500" />
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full hover:bg-transparent"
-              onClick={() => handleSocialLogin("Facebook")}
-            >
-              <FaFacebook className="w-5 h-5 text-blue-600" />
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full hover:bg-transparent"
-              onClick={() => handleSocialLogin("LinkedIn")}
-            >
-              <FaLinkedin className="w-5 h-5 text-blue-700" />
-            </Button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
-            </div>
-          </div>
-
-          <form onSubmit={handleEmailLogin} className="space-y-4">
-            <div>
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full"
-                required
+          <CardTitle className="text-3xl font-bold">ACTIV Portal</CardTitle>
+          <CardDescription>Member & Admin Management System</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="identifier">Member ID or Email</Label>
+              <Input 
+                id="identifier" 
+                name="identifier"
+                placeholder="Enter your member ID or email" 
+                value={formData.identifier}
+                onChange={handleInputChange}
               />
             </div>
-            <div>
-              <Input
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full"
-                required
-              />
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  name="password"
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="Enter your password" 
+                  value={formData.password}
+                  onChange={handleInputChange}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-500">
-                Forget Password?
-              </a>
-            </div>
-            <Button type="submit" className="w-full bg-blue-600 text-white">
-              Sign In
+            <Button type="submit" className="w-full" size="lg">
+              <Lock className="w-4 h-4 mr-2" />
+              Login
             </Button>
           </form>
-        </div>
 
-        <div className="text-center text-sm text-gray-500">
-          Don't have an account?{" "}
-          <a href="/register" className="text-blue-600 hover:text-blue-500">
-            Register as member
-          </a>
-        </div>
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex items-center justify-center"
+                onClick={() => handleSocialLogin("Google")}
+              >
+                <Chrome className="w-5 h-5 text-red-500" />
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex items-center justify-center"
+                onClick={() => handleSocialLogin("Facebook")}
+              >
+                <Facebook className="w-5 h-5 text-blue-600" />
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex items-center justify-center"
+                onClick={() => handleSocialLogin("LinkedIn")}
+              >
+                <Linkedin className="w-5 h-5 text-blue-700" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center text-sm">
+            <span className="text-muted-foreground">New Member? </span>
+            <Button 
+              variant="link" 
+              className="p-0 h-auto font-medium"
+              onClick={() => navigate("/member/register")}
+            >
+              Register Here
+            </Button>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );
-}
+};
+
+export default LoginPage;

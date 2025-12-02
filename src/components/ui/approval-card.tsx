@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Mail, Phone, User, VenetianMask } from "lucide-react";
+import { CheckCircle, XCircle, Mail, Phone, User, VenetianMask, AlertTriangle, MapPin, Building } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Define TypeScript interfaces
@@ -14,15 +14,21 @@ interface MemberDetails {
   gender: string;
   sector: string;
   phone: string;
+  currentLevel: "block" | "district" | "state" | "super";
+  memberType: "individual" | "shg" | "fpo";
+  businessName?: string;
+  district: string;
+  state: string;
 }
 
 interface ApprovalCardProps {
   member: MemberDetails;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onEscalate?: (id: string) => void;
 }
 
-const ApprovalCard = ({ member, onApprove, onReject }: ApprovalCardProps) => {
+const ApprovalCard = ({ member, onApprove, onReject, onEscalate }: ApprovalCardProps) => {
   const { toast } = useToast();
 
   const handleApprove = () => {
@@ -40,6 +46,37 @@ const ApprovalCard = ({ member, onApprove, onReject }: ApprovalCardProps) => {
       description: `${member.name} has been rejected.`,
       variant: "destructive",
     });
+  };
+
+  const handleEscalate = () => {
+    if (onEscalate) {
+      onEscalate(member.id);
+      toast({
+        title: "Application Escalated",
+        description: `${member.name}'s application has been escalated to the next level.`,
+      });
+    }
+  };
+
+  // Get level display name
+  const getLevelDisplayName = (level: string) => {
+    switch (level) {
+      case "block": return "Block Admin";
+      case "district": return "District Admin";
+      case "state": return "State Admin";
+      case "super": return "Super Admin";
+      default: return level;
+    }
+  };
+
+  // Get member type display name
+  const getMemberTypeDisplayName = (type: string) => {
+    switch (type) {
+      case "individual": return "Individual";
+      case "shg": return "SHG";
+      case "fpo": return "FPO";
+      default: return type;
+    }
   };
 
   return (
@@ -73,8 +110,28 @@ const ApprovalCard = ({ member, onApprove, onReject }: ApprovalCardProps) => {
         </div>
         
         <div className="flex items-center gap-2">
-          <span className="font-medium">Sector:</span>
-          <Badge variant="outline">{member.sector}</Badge>
+          <Building className="w-4 h-4 text-muted-foreground" />
+          <span className="font-medium">Member Type:</span>
+          <Badge variant="outline">{getMemberTypeDisplayName(member.memberType)}</Badge>
+        </div>
+        
+        {member.businessName && (
+          <div className="flex items-center gap-2">
+            <Building className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium">Business:</span>
+            <span>{member.businessName}</span>
+          </div>
+        )}
+        
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-muted-foreground" />
+          <span className="font-medium">Location:</span>
+          <span>{member.district}, {member.state}</span>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <span className="font-medium">Current Level:</span>
+          <Badge variant="default">{getLevelDisplayName(member.currentLevel)}</Badge>
         </div>
         
         <div className="flex items-center gap-2">
@@ -93,6 +150,18 @@ const ApprovalCard = ({ member, onApprove, onReject }: ApprovalCardProps) => {
           <XCircle className="w-4 h-4" />
           Reject
         </Button>
+        
+        {onEscalate && (
+          <Button 
+            variant="outline" 
+            onClick={handleEscalate}
+            className="flex items-center gap-2"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            Escalate
+          </Button>
+        )}
+        
         <Button 
           variant="default" 
           onClick={handleApprove}
