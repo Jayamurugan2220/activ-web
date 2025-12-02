@@ -64,7 +64,7 @@ export default function AdminMobileMenu({ isOpen, onClose }: Props) {
         </nav>
 
         <div className="p-2 border-t">
-          <Button variant="ghost" className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 p-3">
+          <Button variant="ghost" onClick={() => { localStorage.removeItem('isLoggedIn'); localStorage.removeItem('memberId'); localStorage.removeItem('userName'); onClose(); window.location.href = '/admin/block/login'; }} className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 p-3">
             <FaSignOutAlt className="w-5 h-5" />
             <span>Log out</span>
           </Button>

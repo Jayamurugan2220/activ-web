@@ -1,3 +1,6 @@
+@import './components/ui/mobile-styles.css';
+@import './components/ui/background.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -130,6 +133,4 @@ All colors MUST be HSL.
   }
 }
 
-/* Import additional styles */
-@import './components/ui/mobile-styles.css';
-@import './components/ui/background.css';
+/* Import additional styles (moved to top) */

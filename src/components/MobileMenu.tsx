@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FaHome, FaSearch, FaBell, FaUser, FaClipboardList, FaCertificate, FaQuestionCircle, FaCalendarAlt, FaSignOutAlt, FaTimes } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,6 +12,16 @@ type Props = {
 
 export default function MobileMenu({ isOpen, onClose }: Props) {
   const location = useLocation();
+  const [userName, setUserName] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Get user name from localStorage
+    const storedUserName = localStorage.getItem("userName");
+    if (storedUserName) {
+      setUserName(storedUserName);
+    }
+  }, []);
 
   const nav = [
     { to: '/member/dashboard', label: 'Home', icon: <FaHome /> },
@@ -23,6 +34,15 @@ export default function MobileMenu({ isOpen, onClose }: Props) {
     { to: '/member/events', label: 'Upcoming Events', icon: <FaCalendarAlt /> },
   ];
 
+    const handleLogout = () => {
+        // clear session and user info
+        localStorage.removeItem("userName");
+        localStorage.removeItem("memberId");
+        localStorage.removeItem("userFirstName");
+        localStorage.removeItem("isLoggedIn");
+      navigate("/login");
+      onClose();
+    };
   if (!isOpen) return null;
 
   return (
@@ -40,10 +60,12 @@ export default function MobileMenu({ isOpen, onClose }: Props) {
           <div className="flex items-center gap-3 mt-4">
             <Avatar className="w-12 h-12">
               <AvatarImage src="/placeholder.svg" />
-              <AvatarFallback className="bg-primary text-primary-foreground">SD</AvatarFallback>
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {userName ? userName.split(" ").map(n => n[0]).join("") : "SD"}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <div className="font-semibold">Sarah D</div>
+              <div className="font-semibold">{userName || "Member"}</div>
               <div className="text-sm text-muted-foreground">TechCorp Solution</div>
             </div>
           </div>
@@ -67,7 +89,7 @@ export default function MobileMenu({ isOpen, onClose }: Props) {
         </nav>
 
         <div className="p-2 border-t">
-          <Button variant="ghost" className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 p-3">
+          <Button variant="ghost" onClick={handleLogout} className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 p-3">
             <FaSignOutAlt className="w-5 h-5" />
             <span>Log out</span>
           </Button>

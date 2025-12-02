@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "id": "vhc9HG4oJqYNigjItB1kO",
+      "memberId": "jayamurugan",
+      "password": "$2b$10$2mpp5e7gYVNsxnVCC5xRZeTACOIa.Niqlirz4EIYn4sxoN5JhH90G",
+      "email": "jaya@gmail.com",
+      "firstName": "jayamurugan k",
+      "createdAt": "2025-12-02T10:44:10.677Z"
+    },
+    {
+      "id": "PN36uJw2QDrzl_ppVdTsZ",
+      "memberId": "test-user-123",
+      "password": "$2b$10$O9jiGd8o7Cmj9TR3f7LbceVxEAN9YAxCgKX8cjtXBgsIVfzR9zWyG",
+      "email": "test+ci@example.com",
+      "firstName": "CI",
+      "createdAt": "2025-12-02T11:13:32.389Z"
+    }
+  ]
+}

@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
 import { FaGoogle, FaFacebook, FaLinkedin } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,11 +15,66 @@ export default function LoginPage() {
     console.log(`Logging in with ${provider}`);
   };
 
-  const handleEmailLogin = (e: React.FormEvent) => {
+  const navigate = useNavigate();
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement email login logic here
-    console.log("Logging in with email", { email, password });
+    try {
+      // Try backend login first
+      try {
+        const res = await fetch('http://localhost:4000/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: email, password }),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          const found = json.user;
+          localStorage.setItem('userName', found.firstName || found.email || found.memberId);
+          localStorage.setItem('memberId', found.memberId);
+          localStorage.setItem('isLoggedIn', 'true');
+          navigate('/member/dashboard');
+          return;
+        }
+      } catch (err) {
+        // no backend — fallback to localStorage
+      }
+
+      const usersJson = localStorage.getItem('users');
+      if (!usersJson) {
+        toast.error('No registered users found. Please register first.');
+        return;
+      }
+
+      const users = JSON.parse(usersJson) as Array<any>;
+      // allow login by email or memberId
+      const found = users.find((u) => u.email === email || u.memberId === email);
+      if (!found) {
+        toast.error('No account matches that email or member ID');
+        return;
+      }
+
+      if (found.password !== password) {
+        toast.error('Invalid credentials');
+        return;
+      }
+
+      localStorage.setItem('userName', found.firstName || found.email || found.memberId);
+      localStorage.setItem('memberId', found.memberId);
+      localStorage.setItem('isLoggedIn', 'true');
+      navigate('/member/dashboard');
+    } catch (err) {
+      console.error(err);
+      toast.error('Login failed. Please try again later.');
+    }
   };
+
+  // if already logged in, redirect to dashboard
+  useEffect(() => {
+    const logged = localStorage.getItem('isLoggedIn');
+    if (logged === 'true') navigate('/member/dashboard');
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
