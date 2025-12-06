@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, User, FileText, ShoppingCart, Bell, Settings, CreditCard, BarChart3, Package, Store, AlertTriangle } from "lucide-react";
+import { Menu, User, FileText, ShoppingCart, Bell, Settings, CreditCard, BarChart3, Package, Store, AlertTriangle, Calendar, CheckCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import MobileMenu from "@/components/MobileMenu";

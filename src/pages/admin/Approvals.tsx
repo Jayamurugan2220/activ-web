@@ -9,6 +9,8 @@ import AdminSidebar from "@/components/AdminSidebar";
 import AdminMobileMenu from "@/components/AdminMobileMenu";
 import ApprovalCard from "@/components/ui/approval-card";
 import { Toaster } from "@/components/ui/toaster";
+import { toast } from "sonner";
+import notificationService from "@/services/notificationService";
 
 // Define TypeScript interfaces
 interface Application {
@@ -122,6 +124,8 @@ const Approvals = () => {
 
   // Handle approval action
   const handleApprove = (id: string) => {
+    const application = applications.find(app => app.id === id);
+    
     setApplications(prev => 
       prev.map(app => {
         if (app.id === id) {
@@ -133,6 +137,18 @@ const Approvals = () => {
           
           // If already at super level, mark as fully approved
           if (app.currentLevel === "super") {
+            // Send comprehensive approval notification
+            notificationService.sendApprovalNotification(
+              app.name,
+              app.email,
+              app.phone,
+              "application",
+              app.businessName,
+              "approved"
+            ).catch(error => {
+              console.error('Failed to send approval notification:', error);
+            });
+            
             return { ...app, status: "approved" };
           }
           
@@ -145,15 +161,34 @@ const Approvals = () => {
 
   // Handle rejection action
   const handleReject = (id: string) => {
+    const application = applications.find(app => app.id === id);
+    
     setApplications(prev => 
-      prev.map(app => 
-        app.id === id ? { ...app, status: "rejected", date: new Date().toISOString().split('T')[0] } : app
-      )
+      prev.map(app => {
+        if (app.id === id) {
+          // Send comprehensive rejection notification
+          notificationService.sendApprovalNotification(
+            app.name,
+            app.email,
+            app.phone,
+            "application",
+            app.businessName,
+            "rejected"
+          ).catch(error => {
+            console.error('Failed to send rejection notification:', error);
+          });
+          
+          return { ...app, status: "rejected", date: new Date().toISOString().split('T')[0] };
+        }
+        return app;
+      })
     );
   };
 
   // Handle escalation action
   const handleEscalate = (id: string) => {
+    const application = applications.find(app => app.id === id);
+    
     setApplications(prev => 
       prev.map(app => {
         if (app.id === id) {
@@ -162,6 +197,19 @@ const Approvals = () => {
           if (app.currentLevel === "block") escalationLevel = "district";
           else if (app.currentLevel === "district") escalationLevel = "state";
           else if (app.currentLevel === "state") escalationLevel = "super";
+          
+          // Send escalation notification
+          notificationService.sendEscalationNotification(
+            app.name,
+            app.email,
+            app.phone,
+            "application",
+            app.businessName,
+            app.currentLevel,
+            escalationLevel
+          ).catch(error => {
+            console.error('Failed to send escalation notification:', error);
+          });
           
           return { 
             ...app, 

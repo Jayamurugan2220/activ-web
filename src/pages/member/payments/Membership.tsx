@@ -16,6 +16,8 @@ import {
   Trophy,
   Star
 } from "lucide-react";
+import notificationService from "@/services/notificationService";
+import reminderService from "@/services/reminderService";
 
 const MembershipRenewal = () => {
   const [plan, setPlan] = useState("annual");
@@ -50,9 +52,44 @@ const MembershipRenewal = () => {
 
   const selectedPlan = plans[plan as keyof typeof plans];
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     // In a real app, this would integrate with a payment gateway
     alert(`Proceeding to payment for ${selectedPlan.name} - ₹${selectedPlan.price}`);
+    
+    // Simulate payment success notification
+    try {
+      const userName = localStorage.getItem('userName') || 'Member';
+      const memberId = localStorage.getItem('memberId') || 'MEMBER001';
+      
+      // Send payment success notification
+      await notificationService.sendPaymentSuccessNotification(
+        userName,
+        undefined, // email - would be retrieved from user data in real app
+        undefined, // phone - would be retrieved from user data in real app
+        `PAY${Date.now()}`, // paymentId
+        selectedPlan.price,
+        selectedPlan.name
+      );
+      
+      // Schedule a reminder for membership renewal before expiry
+      // For annual plan, remind 1 month before expiry
+      // For lifetime plan, no reminder needed
+      if (plan === "annual") {
+        const dueDate = new Date();
+        dueDate.setFullYear(dueDate.getFullYear() + 1); // 1 year from now
+        dueDate.setMonth(dueDate.getMonth() - 1); // 1 month before expiry
+        
+        reminderService.scheduleReminder(
+          memberId,
+          "membership",
+          "Membership Renewal Due Soon",
+          "Your annual membership will expire soon. Renew now to continue enjoying all benefits.",
+          dueDate.toISOString()
+        );
+      }
+    } catch (error) {
+      console.error('Failed to send payment notification:', error);
+    }
   };
 
   return (

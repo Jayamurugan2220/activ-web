@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import notificationService from "@/services/notificationService"; // Add this import
 
 interface OrderItem {
   id: string;
@@ -32,6 +33,7 @@ interface Order {
 interface OrderContextType {
   orders: Order[];
   addOrder: (order: Omit<Order, "id" | "date" | "status">) => void;
+  updateOrderStatus: (orderId: string, status: string) => void;
   getOrderById: (id: string) => Order | undefined;
 }
 
@@ -60,6 +62,31 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     return newOrder.id;
   };
 
+  const updateOrderStatus = (orderId: string, status: string) => {
+    setOrders(prevOrders => 
+      prevOrders.map(order => {
+        if (order.id === orderId) {
+          const updatedOrder = { ...order, status };
+          
+          // Send comprehensive order update notification
+          notificationService.sendOrderUpdateNotification(
+            order.shipping.name,
+            order.shipping.email,
+            order.shipping.phone,
+            order.id,
+            status,
+            order.items[0]?.name || "your order"
+          ).catch(error => {
+            console.error('Failed to send order update notification:', error);
+          });
+          
+          return updatedOrder;
+        }
+        return order;
+      })
+    );
+  };
+
   const getOrderById = (id: string) => {
     return orders.find(order => order.id === id);
   };
@@ -68,6 +95,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     <OrderContext.Provider value={{
       orders,
       addOrder,
+      updateOrderStatus,
       getOrderById
     }}>
       {children}

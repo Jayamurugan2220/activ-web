@@ -15,7 +15,11 @@ import {
   CreditCard,
   Calendar,
   ShoppingCart,
-  MessageCircle
+  MessageCircle,
+  LogIn,
+  CheckCircle,
+  AlertTriangle,
+  ShoppingCartIcon
 } from "lucide-react";
 
 const NotificationSettings = () => {
@@ -34,7 +38,11 @@ const NotificationSettings = () => {
     documents: true,
     orders: true,
     profile: true,
-    inquiries: true // Add inquiries notification type
+    inquiries: true,
+    registrations: true,
+    escalations: true,
+    reminders: true,
+    cartUpdates: true
   });
 
   const togglePreference = (type: keyof typeof preferences) => {
@@ -64,7 +72,11 @@ const NotificationSettings = () => {
     { id: "documents", name: "Document Updates", icon: FileText, description: "Document submissions and reviews" },
     { id: "orders", name: "Order Status", icon: ShoppingCart, description: "Order confirmations and shipping updates" },
     { id: "inquiries", name: "Inquiry Notifications", icon: MessageCircle, description: "New product inquiries and responses" },
-    { id: "profile", name: "Profile Changes", icon: User, description: "Profile updates and security alerts" }
+    { id: "profile", name: "Profile Changes", icon: User, description: "Profile updates and security alerts" },
+    { id: "registrations", name: "Registration Updates", icon: LogIn, description: "Account registration and onboarding" },
+    { id: "escalations", name: "Escalation Alerts", icon: AlertTriangle, description: "Item escalation notifications" },
+    { id: "reminders", name: "Reminders", icon: Calendar, description: "Important reminders and deadlines" },
+    { id: "cartUpdates", name: "Cart Updates", icon: ShoppingCartIcon, description: "Changes to your shopping cart" }
   ];
 
   return (

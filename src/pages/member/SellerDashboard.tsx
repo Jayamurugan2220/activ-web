@@ -221,7 +221,7 @@ const SellerDashboard = () => {
           </Button>
           <Button 
             variant={activeTab === "products" ? "default" : "outline"} 
-            onClick={() => setActiveTab("products")}
+            onClick={() => navigate("/member/seller/catalog")}
           >
             <Package className="w-4 h-4 mr-2" />
             My Products
@@ -271,7 +271,7 @@ const SellerDashboard = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Recent Products</CardTitle>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => navigate("/member/seller/catalog")}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Product
                   </Button>
@@ -345,7 +345,7 @@ const SellerDashboard = () => {
                   <CardTitle>My Products</CardTitle>
                   <CardDescription>Manage your product listings</CardDescription>
                 </div>
-                <Button>
+                <Button onClick={() => navigate("/member/seller/catalog")}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add New Product
                 </Button>

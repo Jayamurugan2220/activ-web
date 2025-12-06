@@ -11,6 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, ArrowRight, Upload, Building, MapPin, User, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { INDIA_DISTRICTS } from "@/data/india-districts";
+import notificationService from "@/services/notificationService";
+import reminderService from "@/services/reminderService";
 
 const MemberRegister = () => {
   const navigate = useNavigate();
@@ -137,6 +139,40 @@ const MemberRegister = () => {
       localStorage.setItem('memberId', data.memberName);
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.removeItem('hasVisitedDashboard');
+      
+      // Send WhatsApp onboarding message
+      try {
+        // Send comprehensive registration notification
+        await notificationService.sendRegistrationNotification(
+          partialData.firstName || combined.firstName || 'Member',
+          partialData.email,
+          partialData.mobile,
+          data.memberName,
+          partialData.businessName || 'your business'
+        );
+        
+        // Also send WhatsApp onboarding message
+        await notificationService.sendWhatsAppOnboarding(
+          partialData.firstName || combined.firstName || 'Member',
+          partialData.mobile,
+          partialData.businessName || 'your business'
+        );
+        
+        // Schedule a reminder to complete profile
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 3); // 3 days from now
+        
+        reminderService.scheduleReminder(
+          data.memberName,
+          "profile",
+          "Complete Your Profile",
+          "Complete your member profile to unlock all platform features",
+          dueDate.toISOString()
+        );
+      } catch (error) {
+        console.error('Failed to send registration notifications:', error);
+      }
+      
       toast.success('Registration successful — you are now signed in');
       // navigate to dashboard directly
       navigate('/member/dashboard');

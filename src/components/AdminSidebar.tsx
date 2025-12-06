@@ -21,6 +21,7 @@ export default function AdminSidebar({ className = '' }: Props) {
     { to: "/admin/applications", icon: FileText, label: "Applications" },
     { to: "/admin/members", icon: Users, label: "Members" },
     { to: "/admin/inventory", icon: Package, label: "Inventory" },
+    { to: "/admin/products", icon: Package, label: "Product Catalog" },
     { to: "/admin/leads", icon: MessageCircle, label: "Leads Management" },
     { to: "/admin/settings", icon: List, label: "Settings" },
   ];

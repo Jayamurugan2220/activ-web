@@ -24,6 +24,7 @@ const mockProducts = [
     name: "Organic Cotton Textiles",
     seller: "Green Textiles Co.",
     sellerId: "ST001",
+    sellerPhone: "+91 98765 43210",
     price: 1200,
     minOrder: 50,
     category: "Textiles",
@@ -38,6 +39,7 @@ const mockProducts = [
     name: "Handcrafted Pottery",
     seller: "Artisan Pottery Studio",
     sellerId: "ST002",
+    sellerPhone: "+91 87654 32109",
     price: 800,
     minOrder: 20,
     category: "Handicrafts",
@@ -86,6 +88,16 @@ const InquiryForm = () => {
         product.seller,
         undefined, // In a real app, we would have the seller's email
         undefined, // In a real app, we would have the seller's phone
+        product.name,
+        formData.fullName,
+        formData.quantity,
+        formData.message
+      );
+      
+      // Send WhatsApp notification to seller
+      await notificationService.sendB2BInquiryWhatsApp(
+        product.seller,
+        product.sellerPhone || "", // Add seller phone property to product data
         product.name,
         formData.fullName,
         formData.quantity,

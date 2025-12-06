@@ -16,7 +16,10 @@ import {
   Clock,
   MessageCircle,
   CreditCard,
-  ShoppingCart
+  ShoppingCart,
+  LogIn,
+  AlertTriangle,
+  ShoppingCartIcon
 } from "lucide-react";
 
 const Notifications = () => {
@@ -91,6 +94,10 @@ const Notifications = () => {
       case "profile": return <User className="h-5 w-5 text-purple-500" />;
       case "payment": return <CheckCircle className="h-5 w-5 text-success" />;
       case "approval": return <Clock className="h-5 w-5 text-amber-500" />;
+      case "registration": return <LogIn className="h-5 w-5 text-blue-500" />;
+      case "escalation": return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      case "reminder": return <Calendar className="h-5 w-5 text-purple-500" />;
+      case "cart": return <ShoppingCartIcon className="h-5 w-5 text-orange-500" />;
       default: return <Bell className="h-5 w-5 text-gray-500" />;
     }
   };
@@ -131,7 +138,11 @@ const Notifications = () => {
     { id: "documents", name: "Document Updates", icon: FileText, description: "Document submissions and reviews" },
     { id: "orders", name: "Order Status", icon: ShoppingCart, description: "Order confirmations and shipping updates" },
     { id: "inquiries", name: "Inquiry Notifications", icon: MessageCircle, description: "New product inquiries and responses" },
-    { id: "profile", name: "Profile Changes", icon: User, description: "Profile updates and security alerts" }
+    { id: "profile", name: "Profile Changes", icon: User, description: "Profile updates and security alerts" },
+    { id: "registrations", name: "Registration Updates", icon: LogIn, description: "Account registration and onboarding" },
+    { id: "escalations", name: "Escalation Alerts", icon: AlertTriangle, description: "Item escalation notifications" },
+    { id: "reminders", name: "Reminders", icon: Calendar, description: "Important reminders and deadlines" },
+    { id: "cartUpdates", name: "Cart Updates", icon: ShoppingCartIcon, description: "Changes to your shopping cart" }
   ];
 
   return (

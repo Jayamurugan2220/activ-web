@@ -18,6 +18,8 @@ import {
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
+import notificationService from "@/services/notificationService";
+
 // Mock product data
 const products = [
   {
@@ -68,12 +70,24 @@ const WhatsAppSharing = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const generateQRCode = () => {
+  const generateQRCode = async () => {
     setQrCode(shareableLink);
     toast.success("QR code generated!");
+    
+    // Send QR code via WhatsApp notification service
+    try {
+      await notificationService.sendQRCodeWhatsApp(
+        "Recipient", // In a real app, we would have the recipient's name
+        "", // In a real app, we would have the recipient's phone
+        shareableLink,
+        "Business" // In a real app, this would be the actual business name
+      );
+    } catch (error) {
+      console.error('Failed to send QR code via WhatsApp service:', error);
+    }
   };
 
-  const shareViaWhatsApp = () => {
+  const shareViaWhatsApp = async () => {
     if (!recipient) {
       toast.error("Please enter a recipient");
       return;
@@ -83,10 +97,23 @@ const WhatsAppSharing = () => {
     const encodedMessage = encodeURIComponent(`${message}\n\n${shareableLink}`);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
     
+    // Open WhatsApp
     window.open(whatsappUrl, '_blank');
+    
+    // Also send via notification service for tracking
+    try {
+      await notificationService.sendCatalogLinkWhatsApp(
+        "Recipient", // In a real app, we would have the recipient's name
+        phoneNumber,
+        shareableLink,
+        "Seller" // In a real app, this would be the actual seller name
+      );
+    } catch (error) {
+      console.error('Failed to send catalog link via WhatsApp service:', error);
+    }
   };
 
-  const shareCatalog = () => {
+  const shareCatalog = async () => {
     if (selectedProducts.length === 0) {
       toast.error("Please select at least one product");
       return;
@@ -107,9 +134,21 @@ ${productList}
 
 View full catalog: ${shareableLink}`;
     
-    // For demo purposes, we'll just show the message that would be sent
+    // Show success message
     toast.success("Catalog shared successfully!");
     console.log("WhatsApp message:", fullMessage);
+    
+    // Also send via notification service for tracking
+    try {
+      await notificationService.sendCatalogLinkWhatsApp(
+        "Recipient", // In a real app, we would have the recipient's name
+        "", // In a real app, we would have the recipient's phone
+        shareableLink,
+        "Seller" // In a real app, this would be the actual seller name
+      );
+    } catch (error) {
+      console.error('Failed to send catalog link via WhatsApp service:', error);
+    }
   };
 
   return (

@@ -31,6 +31,7 @@ import CategoryManagement from "./pages/admin/CategoryManagement";
 
 // Admin Inventory Component
 import AdminInventory from "./pages/admin/Inventory";
+import AdminProductCatalog from "./pages/admin/ProductCatalog";
 
 // Payment Components
 import PaymentHistory from "./pages/member/payments/History";
@@ -39,12 +40,15 @@ import Donate from "./pages/member/payments/Donate";
 
 // Notification Settings
 import NotificationSettings from "./pages/member/NotificationSettings";
+import Reminders from "./pages/member/Reminders";
+import TestNotifications from "./pages/member/TestNotifications";
 
 // Marketplace Components
 import B2BCatalog from "./pages/marketplace/B2BCatalog";
 import B2CCatalog from "./pages/marketplace/B2CCatalog";
 import ProductDetail from "./pages/marketplace/ProductDetail";
 import SellerDashboard from "./pages/member/SellerDashboard";
+import SellerProductCatalog from "./pages/member/SellerProductCatalog";
 import InquiryForm from "./pages/marketplace/InquiryForm";
 import SellerLeadsInbox from "./pages/member/SellerLeadsInbox";
 
@@ -111,6 +115,8 @@ const App = () => (
               
               {/* Notification Settings */}
               <Route path="/member/notification-settings" element={<NotificationSettings />} />
+              <Route path="/member/reminders" element={<Reminders />} />
+              <Route path="/member/test-notifications" element={<TestNotifications />} />
               
               {/* Marketplace Routes */}
               <Route path="/marketplace/b2b" element={<B2BCatalog />} />
@@ -118,6 +124,7 @@ const App = () => (
               <Route path="/marketplace/b2c" element={<B2CCatalog />} />
               <Route path="/marketplace/product/:id" element={<ProductDetail />} />
               <Route path="/member/seller/dashboard" element={<SellerDashboard />} />
+              <Route path="/member/seller/catalog" element={<SellerProductCatalog />} />
               <Route path="/member/seller/leads" element={<SellerLeadsInbox />} />
               
               {/* Shopping Cart and Order Management */}
@@ -151,6 +158,7 @@ const App = () => (
               <Route path="/admin/approvals" element={<Approvals />} />
               <Route path="/admin/members" element={<Members />} />
               <Route path="/admin/inventory" element={<AdminInventory />} />
+              <Route path="/admin/products" element={<AdminProductCatalog />} />
               <Route path="/admin/settings" element={<Settings />} />
               <Route path="/admin/application/:id" element={<ApplicationView />} />
               <Route path="/admin/leads" element={<LeadsManagement />} />
