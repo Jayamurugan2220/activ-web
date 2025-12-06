@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,10 +18,14 @@ import {
 } from "lucide-react";
 import notificationService from "@/services/notificationService";
 import reminderService from "@/services/reminderService";
+import instamojoService from "@/services/instamojoService";
+import receiptService from "@/services/receiptService";
+import certificateService from "@/services/certificateService";
 
 const MembershipRenewal = () => {
   const [plan, setPlan] = useState("annual");
   const [coupon, setCoupon] = useState("");
+  const navigate = useNavigate();
 
   const plans = {
     annual: {
@@ -53,42 +57,127 @@ const MembershipRenewal = () => {
   const selectedPlan = plans[plan as keyof typeof plans];
 
   const handlePayment = async () => {
-    // In a real app, this would integrate with a payment gateway
-    alert(`Proceeding to payment for ${selectedPlan.name} - ₹${selectedPlan.price}`);
-    
-    // Simulate payment success notification
     try {
       const userName = localStorage.getItem('userName') || 'Member';
       const memberId = localStorage.getItem('memberId') || 'MEMBER001';
+      const email = localStorage.getItem('userEmail') || '';
+      const phone = localStorage.getItem('userPhone') || '';
       
-      // Send payment success notification
-      await notificationService.sendPaymentSuccessNotification(
-        userName,
-        undefined, // email - would be retrieved from user data in real app
-        undefined, // phone - would be retrieved from user data in real app
-        `PAY${Date.now()}`, // paymentId
+      // Process payment through Instamojo
+      const paymentLink = await instamojoService.processMembershipPayment(
         selectedPlan.price,
-        selectedPlan.name
+        { name: userName, email, phone },
+        plan as 'annual' | 'lifetime',
+        `${window.location.origin}/member/payments/history`
       );
       
-      // Schedule a reminder for membership renewal before expiry
-      // For annual plan, remind 1 month before expiry
-      // For lifetime plan, no reminder needed
-      if (plan === "annual") {
-        const dueDate = new Date();
-        dueDate.setFullYear(dueDate.getFullYear() + 1); // 1 year from now
-        dueDate.setMonth(dueDate.getMonth() - 1); // 1 month before expiry
-        
-        reminderService.scheduleReminder(
+      // In a real app, this would redirect to the payment gateway
+      alert(`Redirecting to Instamojo payment gateway...\n\nIn a real application, you would be redirected to: ${paymentLink}`);
+      
+      // Simulate successful payment for demo purposes
+      setTimeout(async () => {
+        // Generate and save receipt
+        const receiptId = `RCT-${Date.now()}`;
+        const receiptData = {
+          receiptId,
+          paymentId: `PAY-${Date.now()}`,
           memberId,
-          "membership",
-          "Membership Renewal Due Soon",
-          "Your annual membership will expire soon. Renew now to continue enjoying all benefits.",
-          dueDate.toISOString()
+          memberName: userName,
+          email,
+          phone,
+          paymentType: plan === 'annual' ? 'membership' : 'lifetime_membership' as 'membership' | 'lifetime_membership',
+          amount: selectedPlan.price,
+          paymentDate: new Date().toISOString(),
+          validity: plan === 'annual' ? '1 Year' : 'Lifetime'
+        };
+        
+        const receiptContent = await receiptService.generateReceipt(receiptData);
+        receiptService.saveReceipt(receiptId, receiptContent);
+        
+        // Send email receipt if email is available
+        if (email) {
+          await notificationService.sendReceiptEmail(
+            email,
+            userName,
+            receiptContent,
+            selectedPlan.name
+          );
+        }
+        
+        // Send SMS receipt if phone is available
+        if (phone) {
+          await notificationService.sendReceiptSMS(
+            phone,
+            userName,
+            receiptData.paymentId,
+            selectedPlan.price
+          );
+        }
+        
+        // For lifetime membership, generate certificate
+        if (plan === 'lifetime') {
+          const certificateId = `CERT-${Date.now()}`;
+          const qrCodeData = certificateService.generateQRCodeData(certificateId, memberId);
+          const certificateData = {
+            certificateId,
+            memberId,
+            memberName: userName,
+            membershipId: memberId,
+            issueDate: new Date().toISOString(),
+            validity: 'Lifetime',
+            qrCodeData
+          };
+          
+          const certificateContent = await certificateService.generateCertificate(certificateData);
+          certificateService.saveCertificate(certificateId, certificateContent);
+          
+          // Save certificate to user's certificates
+          const userCertificates = JSON.parse(localStorage.getItem('userCertificates') || '[]');
+          userCertificates.push({
+            id: certificateId,
+            title: "Lifetime Membership Certificate",
+            issueDate: new Date().toISOString(),
+            expiryDate: "2099-12-31",
+            certificateNumber: certificateId,
+            status: "valid",
+            downloadUrl: "#"
+          });
+          localStorage.setItem('userCertificates', JSON.stringify(userCertificates));
+        }
+        
+        // Send payment success notification
+        await notificationService.sendPaymentSuccessNotification(
+          userName,
+          email,
+          phone,
+          receiptData.paymentId,
+          selectedPlan.price,
+          selectedPlan.name
         );
-      }
+        
+        // Schedule a reminder for membership renewal before expiry
+        // For annual plan, remind 1 month before expiry
+        // For lifetime plan, no reminder needed
+        if (plan === "annual") {
+          const dueDate = new Date();
+          dueDate.setFullYear(dueDate.getFullYear() + 1); // 1 year from now
+          dueDate.setMonth(dueDate.getMonth() - 1); // 1 month before expiry
+          
+          reminderService.scheduleReminder(
+            memberId,
+            "membership",
+            "Membership Renewal Due Soon",
+            "Your annual membership will expire soon. Renew now to continue enjoying all benefits.",
+            dueDate.toISOString()
+          );
+        }
+        
+        // Navigate to payment history
+        navigate("/member/payments/history");
+      }, 2000);
     } catch (error) {
-      console.error('Failed to send payment notification:', error);
+      console.error('Payment processing failed:', error);
+      alert("Payment processing failed. Please try again.");
     }
   };
 

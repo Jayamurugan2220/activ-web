@@ -14,6 +14,7 @@ import {
   Clock, 
   XCircle 
 } from "lucide-react";
+import receiptService from "@/services/receiptService";
 
 // Mock payment data
 const paymentHistory = [
@@ -83,9 +84,34 @@ const PaymentHistory = () => {
   const getTypeDisplay = (type: string) => {
     switch (type) {
       case "membership": return "Membership";
+      case "lifetime_membership": return "Lifetime Membership";
       case "donation": return "Donation";
       default: return type;
     }
+  };
+
+  const handleDownloadReceipt = (paymentId: string) => {
+    // In a real app, this would fetch the actual receipt
+    // For demo purposes, we'll generate a mock receipt
+    const receiptContent = `ACTIV Organization
+Payment Receipt
+----------------------------------------
+Receipt ID: RCT-${paymentId}
+Payment ID: ${paymentId}
+Date: ${new Date().toLocaleDateString()}
+
+Member Information:
+Name: ${localStorage.getItem('userName') || 'Member'}
+Member ID: ${localStorage.getItem('memberId') || 'MEMBER001'}
+
+Payment Details:
+Type: ${filteredPayments.find(p => p.id === paymentId)?.type}
+Amount: ₹${filteredPayments.find(p => p.id === paymentId)?.amount}
+
+Thank you for your payment. This serves as your official receipt.
+For any queries, contact support@activ.org`;
+    
+    receiptService.downloadReceipt(receiptContent, `receipt-${paymentId}.txt`);
   };
 
   return (
@@ -163,6 +189,13 @@ const PaymentHistory = () => {
             Membership
           </Button>
           <Button 
+            variant={filter === "lifetime_membership" ? "default" : "outline"} 
+            size="sm"
+            onClick={() => setFilter("lifetime_membership")}
+          >
+            Lifetime Membership
+          </Button>
+          <Button 
             variant={filter === "donation" ? "default" : "outline"} 
             size="sm"
             onClick={() => setFilter("donation")}
@@ -184,7 +217,7 @@ const PaymentHistory = () => {
                   <div className="flex items-center gap-4">
                     <Avatar className="w-12 h-12">
                       <AvatarFallback className="bg-primary text-primary-foreground">
-                        {payment.type === "membership" ? "M" : "D"}
+                        {payment.type === "membership" || payment.type === "lifetime_membership" ? "M" : "D"}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -207,7 +240,11 @@ const PaymentHistory = () => {
                         {payment.status}
                       </Badge>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleDownloadReceipt(payment.id)}
+                    >
                       <FileText className="w-4 h-4 mr-2" />
                       Receipt
                     </Button>

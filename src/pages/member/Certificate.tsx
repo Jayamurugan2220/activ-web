@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Menu, Download, Printer, FileText } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import MobileMenu from "@/components/MobileMenu";
+import certificateService from "@/services/certificateService";
 
 interface Certificate {
   id: string;
@@ -81,22 +82,47 @@ const MemberCertificate = () => {
   };
 
   const handleDownload = (cert: Certificate) => {
-    // In a real app, this would trigger actual PDF download
-    const element = document.createElement("a");
-    const file = new Blob(
-      [
-        `Certificate: ${cert.title}\nCertificate Number: ${cert.certificateNumber}\nIssued To: ${userName}\nIssue Date: ${cert.issueDate}\n\nThis is a mock certificate. In production, this would be a PDF file.`,
-      ],
-      { type: "text/plain" }
-    );
-    element.href = URL.createObjectURL(file);
-    element.download = `${cert.certificateNumber}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    // Try to get certificate from service first
+    const certificateContent = certificateService.getCertificate(cert.id);
+    
+    if (certificateContent) {
+      // Download actual certificate
+      certificateService.downloadCertificate(certificateContent, `certificate-${cert.certificateNumber}.txt`);
+    } else {
+      // Fallback to mock download
+      const element = document.createElement("a");
+      const file = new Blob(
+        [
+          `Certificate: ${cert.title}
+Certificate Number: ${cert.certificateNumber}
+Issued To: ${userName}
+Issue Date: ${cert.issueDate}
+
+This is a mock certificate. In production, this would be a PDF file.`,
+        ],
+        { type: "text/plain" }
+      );
+      element.href = URL.createObjectURL(file);
+      element.download = `${cert.certificateNumber}.txt`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    }
   };
 
   const handlePrint = (cert: Certificate) => {
+    // Try to get certificate from service first
+    const certificateContent = certificateService.getCertificate(cert.id);
+    
+    const printContent = certificateContent || 
+      `Certificate: ${cert.title}
+Certificate Number: ${cert.certificateNumber}
+Issued To: ${userName}
+Issue Date: ${new Date(cert.issueDate).toLocaleDateString()}
+Expiry Date: ${new Date(cert.expiryDate).toLocaleDateString()}
+
+This certificate is valid and authentic.`;
+
     const printWindow = window.open("", "", "height=600,width=800");
     if (printWindow) {
       printWindow.document.write(`

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,12 +16,16 @@ import {
   Home,
   Leaf
 } from "lucide-react";
+import instamojoService from "@/services/instamojoService";
+import receiptService from "@/services/receiptService";
+import notificationService from "@/services/notificationService";
 
 const Donate = () => {
   const [amount, setAmount] = useState("");
   const [customAmount, setCustomAmount] = useState("");
   const [donationType, setDonationType] = useState("general");
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   const presetAmounts = [500, 1000, 2000, 5000];
 
@@ -33,15 +37,81 @@ const Donate = () => {
     { id: "environment", name: "Environmental Causes", icon: Leaf, description: "Environmental conservation efforts" }
   ];
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     const totalAmount = customAmount || amount;
     if (!totalAmount) {
       alert("Please select or enter a donation amount");
       return;
     }
     
-    // In a real app, this would integrate with a payment gateway
-    alert(`Proceeding to donate ₹${totalAmount} for ${donationTypes.find(t => t.id === donationType)?.name}`);
+    try {
+      const userName = localStorage.getItem('userName') || 'Donor';
+      const memberId = localStorage.getItem('memberId') || 'DONOR001';
+      const email = localStorage.getItem('userEmail') || '';
+      const phone = localStorage.getItem('userPhone') || '';
+      
+      // Get donation purpose
+      const selectedDonationType = donationTypes.find(t => t.id === donationType);
+      const donationPurpose = selectedDonationType ? selectedDonationType.name : "General Donation";
+      
+      // Process payment through Instamojo
+      const paymentLink = await instamojoService.processDonationPayment(
+        parseInt(totalAmount),
+        { name: userName, email, phone },
+        donationPurpose,
+        `${window.location.origin}/member/payments/history`
+      );
+      
+      // In a real app, this would redirect to the payment gateway
+      alert(`Redirecting to Instamojo payment gateway...\n\nIn a real application, you would be redirected to: ${paymentLink}`);
+      
+      // Simulate successful payment for demo purposes
+      setTimeout(async () => {
+        // Generate and save receipt
+        const receiptId = `RCT-${Date.now()}`;
+        const receiptData = {
+          receiptId,
+          paymentId: `PAY-${Date.now()}`,
+          memberId,
+          memberName: userName,
+          email,
+          phone,
+          paymentType: 'donation' as 'donation',
+          amount: parseInt(totalAmount),
+          paymentDate: new Date().toISOString(),
+          purpose: donationPurpose
+        };
+        
+        const receiptContent = await receiptService.generateReceipt(receiptData);
+        receiptService.saveReceipt(receiptId, receiptContent);
+        
+        // Send email receipt if email is available
+        if (email) {
+          await notificationService.sendReceiptEmail(
+            email,
+            userName,
+            receiptContent,
+            `Donation - ${donationPurpose}`
+          );
+        }
+        
+        // Send SMS receipt if phone is available
+        if (phone) {
+          await notificationService.sendReceiptSMS(
+            phone,
+            userName,
+            receiptData.paymentId,
+            parseInt(totalAmount)
+          );
+        }
+        
+        // Navigate to payment history
+        navigate("/member/payments/history");
+      }, 2000);
+    } catch (error) {
+      console.error('Donation processing failed:', error);
+      alert("Donation processing failed. Please try again.");
+    }
   };
 
   return (

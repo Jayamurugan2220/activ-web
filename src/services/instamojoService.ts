@@ -24,6 +24,16 @@ interface InstamojoPaymentResponse {
   message?: string;
 }
 
+// Define payment types
+export type PaymentType = 'membership' | 'lifetime_membership' | 'donation';
+
+// Define payment purpose mapping
+const PAYMENT_PURPOSES: Record<PaymentType, string> = {
+  membership: "Annual Membership Fee",
+  lifetime_membership: "Lifetime Membership Fee",
+  donation: "Donation to Organization"
+};
+
 class InstamojoService {
   private baseUrl: string;
   private apiKey: string;
@@ -31,9 +41,9 @@ class InstamojoService {
 
   constructor() {
     // In a real application, these would come from environment variables
-    this.baseUrl = "https://test.instamojo.com/api/1.1/";
-    this.apiKey = "YOUR_API_KEY";
-    this.authToken = "YOUR_AUTH_TOKEN";
+    this.baseUrl = import.meta.env.VITE_INSTAMOJO_BASE_URL || "https://test.instamojo.com/api/1.1/";
+    this.apiKey = import.meta.env.VITE_INSTAMOJO_API_KEY || "YOUR_API_KEY";
+    this.authToken = import.meta.env.VITE_INSTAMOJO_AUTH_TOKEN || "YOUR_AUTH_TOKEN";
   }
 
   /**
@@ -109,6 +119,68 @@ class InstamojoService {
       console.error("Failed to generate payment link:", error);
       throw error;
     }
+  }
+
+  /**
+   * Process membership payment
+   * @param amount - Payment amount
+   * @param buyerInfo - Buyer information
+   * @param membershipType - Type of membership (annual/lifetime)
+   * @param redirectUrl - URL to redirect after payment
+   * @returns Promise with payment link
+   */
+  async processMembershipPayment(
+    amount: number,
+    buyerInfo: { name: string; email: string; phone: string },
+    membershipType: 'annual' | 'lifetime',
+    redirectUrl: string
+  ): Promise<string> {
+    const paymentData: InstamojoPaymentData = {
+      amount,
+      currency: "INR",
+      buyer_name: buyerInfo.name,
+      email: buyerInfo.email,
+      phone: buyerInfo.phone,
+      purpose: membershipType === 'annual' 
+        ? PAYMENT_PURPOSES.membership 
+        : PAYMENT_PURPOSES.lifetime_membership,
+      redirect_url: redirectUrl,
+      webhook_url: `${window.location.origin}/api/webhook/instamojo`,
+      send_email: true,
+      send_sms: true
+    };
+
+    return this.generatePaymentLink(paymentData);
+  }
+
+  /**
+   * Process donation payment
+   * @param amount - Donation amount
+   * @param buyerInfo - Buyer information
+   * @param donationPurpose - Purpose of donation
+   * @param redirectUrl - URL to redirect after payment
+   * @returns Promise with payment link
+   */
+  async processDonationPayment(
+    amount: number,
+    buyerInfo: { name: string; email: string; phone: string },
+    donationPurpose: string,
+    redirectUrl: string
+  ): Promise<string> {
+    const paymentData: InstamojoPaymentData = {
+      amount,
+      currency: "INR",
+      buyer_name: buyerInfo.name,
+      email: buyerInfo.email,
+      phone: buyerInfo.phone,
+      purpose: `${PAYMENT_PURPOSES.donation} - ${donationPurpose}`,
+      redirect_url: redirectUrl,
+      webhook_url: `${window.location.origin}/api/webhook/instamojo`,
+      send_email: true,
+      send_sms: true
+    };
+
+    return this.generatePaymentLink(paymentData);
   }
 }
 
