@@ -20,8 +20,11 @@ import MemberProfile from "./pages/member/Profile";
 import ApplicationSubmitted from "./pages/member/ApplicationSubmitted";
 import ApplicationStatus from "./pages/member/ApplicationStatus";
 import PaymentPage from "./pages/member/Payment";
+import PaymentSuccess from "./pages/member/PaymentSuccess";
 import MemberHelp from "./pages/member/Help";
 import MemberEvents from "./pages/member/Events";
+import Account from "./pages/member/Account";
+import PaymentHistory from "./pages/member/PaymentHistory";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminSidebarPage from "./pages/admin/SidebarPage";
 import Approvals from "./pages/admin/Approvals";
@@ -55,9 +58,12 @@ const App = () => (
             <Route path="/member/adf" element={<ADFForm />} />
             <Route path="/member/certificate" element={<MemberCertificate />} />
             <Route path="/member/profile" element={<MemberProfile />} />
+            <Route path="/member/account" element={<Account />} />
+            <Route path="/member/payment-history" element={<PaymentHistory />} />
             <Route path="/member/application-submitted" element={<ApplicationSubmitted />} />
             <Route path="/member/application-status" element={<ApplicationStatus />} />
             <Route path="/member/payment" element={<PaymentPage />} />
+            <Route path="/member/payment-success" element={<PaymentSuccess />} />
             <Route path="/member/help" element={<MemberHelp />} />
             <Route path="/member/events" element={<MemberEvents />} />
           

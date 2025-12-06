@@ -66,7 +66,7 @@ const MemberHelp = () => {
       id: 8,
       question: "How do I contact support?",
       answer:
-        "You can use the 'Contact Us' form on this page to send us a message, or email us at support@vjsportal.com. We typically respond within 24 hours.",
+        "You can use the 'Contact Us' form on this page to send us a message, or email us at support@Actvportal.com. We typically respond within 24 hours.",
     },
   ];
 
@@ -187,7 +187,7 @@ const MemberHelp = () => {
                           <div>
                             <h4 className="font-semibold mb-1">Email</h4>
                             <p className="text-sm text-muted-foreground">
-                              support@vjsportal.com
+                              support@Actvportal.com
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Response: 24 hours

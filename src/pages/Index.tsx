@@ -8,7 +8,7 @@ const Index = () => {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-4xl w-full space-y-8">
         <div className="text-center space-y-4">
-          <h1 className="text-5xl font-bold tracking-tight">VJS Portal</h1>
+          <h1 className="text-5xl font-bold tracking-tight">Actv Portal</h1>
           <p className="text-xl text-muted-foreground">Member & Admin Management System</p>
         </div>
 
@@ -69,7 +69,7 @@ const Index = () => {
 
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
-            VJS Member & Admin Portal - Secure Access System
+            Actv Member & Admin Portal - Secure Access System
           </p>
         </div>
       </div>

@@ -3,103 +3,79 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CheckCircle, XCircle, Clock, Menu } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminMobileMenu from "@/components/AdminMobileMenu";
 import ApprovalCard from "@/components/ui/approval-card";
 import { Toaster } from "@/components/ui/toaster";
+import { toast } from "sonner";
 
-// Define TypeScript interfaces
-interface Application {
+// Backend application types
+type StageKey = 'block' | 'district' | 'state' | 'payment';
+interface Stage { id: number; key: StageKey; title: string; reviewer: string; status: string; reviewDate: string | null; notes: string; }
+interface ApplicationRec {
   id: string;
-  name: string;
-  email: string;
-  role: string;
-  gender: string;
-  sector: string;
-  phone: string;
-  status: "approved" | "pending" | "rejected";
-  date: string;
+  userId: string;
+  submittedAt: string;
+  status: string; // 'Under Review' | 'Rejected' | 'Ready for Payment'
+  stage: number; // 1-based index
+  stages: Stage[];
+  profile?: any;
 }
 
 const Approvals = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  // Updated applications data with more detailed information
-  const [applications, setApplications] = useState<Application[]>([
-    { 
-      id: "VJS2024001", 
-      name: "John Doe", 
-      email: "john.doe@example.com",
-      role: "Volunteer",
-      gender: "Male",
-      sector: "Education",
-      phone: "+1 (555) 123-4567",
-      status: "approved", 
-      date: "2024-01-15" 
-    },
-    { 
-      id: "VJS2024002", 
-      name: "Jane Smith", 
-      email: "jane.smith@example.com",
-      role: "Coordinator",
-      gender: "Female",
-      sector: "Healthcare",
-      phone: "+1 (555) 987-6543",
-      status: "pending", 
-      date: "2024-01-14" 
-    },
-    { 
-      id: "VJS2024003", 
-      name: "Robert Brown", 
-      email: "robert.brown@example.com",
-      role: "Volunteer",
-      gender: "Male",
-      sector: "Environment",
-      phone: "+1 (555) 456-7890",
-      status: "rejected", 
-      date: "2024-01-13" 
-    },
-    { 
-      id: "VJS2024004", 
-      name: "Emily Davis", 
-      email: "emily.davis@example.com",
-      role: "Manager",
-      gender: "Female",
-      sector: "Social Services",
-      phone: "+1 (555) 234-5678",
-      status: "pending", 
-      date: "2024-01-12" 
-    },
-    { 
-      id: "VJS2024005", 
-      name: "Michael Wilson", 
-      email: "michael.wilson@example.com",
-      role: "Volunteer",
-      gender: "Male",
-      sector: "Education",
-      phone: "+1 (555) 876-5432",
-      status: "approved", 
-      date: "2024-01-11" 
-    },
-  ]);
+  const [applications, setApplications] = useState<ApplicationRec[]>([]);
+  const role = (localStorage.getItem('role') || 'block_admin') as string;
 
-  // Handle approval action
-  const handleApprove = (id: string) => {
-    setApplications(prev => 
-      prev.map(app => 
-        app.id === id ? { ...app, status: "approved" } : app
-      )
-    );
+  const stageByRole: Record<string, StageKey> = {
+    super_admin: 'payment',
+    state_admin: 'state',
+    district_admin: 'district',
+    block_admin: 'block',
+    member: 'block',
   };
 
-  // Handle rejection action
-  const handleReject = (id: string) => {
-    setApplications(prev => 
-      prev.map(app => 
-        app.id === id ? { ...app, status: "rejected" } : app
-      )
-    );
+  const load = async () => {
+    try {
+      const res = await fetch('http://localhost:4000/api/applications');
+      if (!res.ok) throw new Error('Failed');
+      const json = await res.json();
+      setApplications(json.applications || []);
+    } catch {
+      toast.error('Unable to fetch applications');
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const patch = async (id: string, body: any) => {
+    const res = await fetch(`http://localhost:4000/api/applications/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('Request failed');
+    const json = await res.json();
+    setApplications(prev => prev.map(a => (a.id === id ? json.application : a)));
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      await patch(id, { action: 'approve', reviewerRole: role });
+      toast.success('Approved');
+    } catch {
+      toast.error('Approval failed');
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await patch(id, { action: 'reject', reviewerRole: role });
+      toast.success('Rejected');
+    } catch {
+      toast.error('Rejection failed');
+    }
   };
 
   return (
@@ -133,24 +109,35 @@ const Approvals = () => {
         <div className="flex-1 p-4 md:p-6 overflow-auto bg-background">
           <div className="w-full max-w-6xl mx-auto">
             <h1 className="text-2xl font-bold mb-6">Approvals</h1>
-            
-            {/* Display pending applications with ApprovalCard */}
+            {/* Display applications for current admin stage */}
             <div className="space-y-6">
               {applications
-                .filter(app => app.status === "pending")
+                .filter(app => {
+                  const desired = stageByRole[role];
+                  if (desired === 'payment') return app.status === 'Ready for Payment';
+                  const idx = Math.max(1, Math.min(Number(app.stage) || 1, (app.stages || []).length)) - 1;
+                  const stg = app.stages?.[idx];
+                  return stg?.key === desired && stg.status === 'Under Review';
+                })
                 .map(app => (
                   <ApprovalCard 
                     key={app.id} 
-                    member={app} 
+                    member={{
+                      id: app.id,
+                      name: app.profile?.profile?.profile?.firstName || app.userId,
+                      email: app.profile?.profile?.profile?.email || '',
+                      role: role,
+                      gender: '', sector: '', phone: '',
+                      status: 'pending', date: app.submittedAt,
+                    }} 
                     onApprove={handleApprove} 
                     onReject={handleReject} 
                   />
                 ))
               }
             </div>
-            
-            {/* Display approved/rejected applications in a list */}
-            {applications.some(app => app.status !== "pending") && (
+            {/* Display completed items */}
+            {applications.some(app => app.status === 'Rejected' || app.status === 'Ready for Payment') && (
               <Card className="shadow-medium border-0 mt-6">
                 <CardHeader>
                   <CardTitle>Application History</CardTitle>
@@ -158,29 +145,28 @@ const Approvals = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {applications
-                      .filter(app => app.status !== "pending")
+                      .filter(app => app.status === 'Rejected' || app.status === 'Ready for Payment')
                       .map((app) => (
                         <div key={app.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                           <div className="flex items-center gap-3">
                             <Avatar>
                               <AvatarFallback className="bg-primary text-primary-foreground">
-                                {app.name.split(' ').map(n => n[0]).join('')}
+                                {(app.profile?.profile?.profile?.firstName || app.userId || 'U').slice(0,2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">{app.name}</p>
+                              <p className="font-medium">{app.profile?.profile?.profile?.firstName || app.userId}</p>
                               <p className="text-sm text-muted-foreground">{app.id}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
                             <Badge 
-                              variant={app.status === "approved" ? "default" : app.status === "rejected" ? "destructive" : "outline"}
-                              className={app.status === "approved" ? "bg-success" : app.status === "rejected" ? "bg-destructive" : ""}
+                              variant={app.status === 'Ready for Payment' ? 'default' : 'destructive'}
+                              className={app.status === 'Ready for Payment' ? 'bg-success' : 'bg-destructive'}
                             >
-                              {app.status === "approved" && <CheckCircle className="w-4 h-4 mr-1" />}
-                              {app.status === "rejected" && <XCircle className="w-4 h-4 mr-1" />}
-                              {app.status === "pending" && <Clock className="w-4 h-4 mr-1" />}
-                              {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                              {app.status === 'Ready for Payment' && <CheckCircle className="w-4 h-4 mr-1" />}
+                              {app.status === 'Rejected' && <XCircle className="w-4 h-4 mr-1" />}
+                              {app.status}
                             </Badge>
                           </div>
                         </div>
@@ -191,7 +177,6 @@ const Approvals = () => {
             )}
           </div>
         </div>
-        
         {/* Add Toaster for notifications */}
         <Toaster />
       </div>

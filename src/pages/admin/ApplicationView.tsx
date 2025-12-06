@@ -1,26 +1,80 @@
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ArrowLeft, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
+type StageKey = 'block' | 'district' | 'state' | 'payment';
+interface Stage { id: number; key: StageKey; title: string; reviewer: string; status: string; reviewDate: string | null; notes: string; }
+interface ApplicationRec {
+  id: string;
+  userId: string;
+  submittedAt: string;
+  status: string; // 'Under Review' | 'Rejected' | 'Ready for Payment'
+  stage: number; // 1-based index
+  stages: Stage[];
+  profile?: any;
+}
+
 const ApplicationView = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [status, setStatus] = useState("pending");
+  const [app, setApp] = useState<ApplicationRec | null>(null);
+  const role = (localStorage.getItem('role') || 'block_admin') as string;
 
-  const handleApprove = () => {
-    setStatus("approved");
-    toast.success("Application approved successfully");
+  const load = async () => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/applications/${id}`);
+      if (!res.ok) throw new Error('Failed');
+      const json = await res.json();
+      setApp(json.application);
+    } catch {
+      toast.error('Unable to load application');
+    }
   };
 
-  const handleReject = () => {
-    setStatus("rejected");
-    toast.error("Application rejected");
+  useEffect(() => { if (id) load(); }, [id]);
+
+  const patch = async (body: any) => {
+    const res = await fetch(`http://localhost:4000/api/applications/${id}` ,{
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('Request failed');
+    const json = await res.json();
+    setApp(json.application);
   };
+
+  const handleApprove = async () => {
+    try {
+      await patch({ action: 'approve', reviewerRole: role });
+      toast.success('Approved');
+    } catch {
+      toast.error('Approval failed');
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      await patch({ action: 'reject', reviewerRole: role });
+      toast.success('Rejected');
+    } catch {
+      toast.error('Rejection failed');
+    }
+  };
+
+  const stages: { key: StageKey; label: string }[] = [
+    { key: 'block', label: 'Block' },
+    { key: 'district', label: 'District' },
+    { key: 'state', label: 'State' },
+    { key: 'payment', label: 'Ready' },
+  ];
+
+  const currentIndex = Math.max(1, Math.min(Number(app?.stage) || 1, app?.stages?.length || 1)) - 1;
 
   return (
     <div className="min-h-screen p-4 pb-24">
@@ -30,23 +84,47 @@ const ApplicationView = () => {
           <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold">User Details</h1>
+          <h1 className="text-2xl font-bold">Application Details</h1>
         </div>
+
+        {/* Stage progress */}
+        <Card className="shadow-medium border-0">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+              <span>{app ? `${Math.min(currentIndex+1, 4)} of 4 stages completed` : 'Loading...'}</span>
+              <span>{app?.status === 'Ready for Payment' ? '100%' : `${Math.round(((currentIndex) / 4) * 100)}%`}</span>
+            </div>
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div className="h-2 bg-blue-600" style={{ width: `${app?.status === 'Ready for Payment' ? 100 : Math.round(((currentIndex) / 4) * 100)}%` }} />
+            </div>
+            <div className="mt-3 grid grid-cols-4 text-center">
+              {stages.map((s, idx) => (
+                <div key={s.key} className="flex flex-col items-center gap-1">
+                  <span className={`w-3 h-3 rounded-full ${idx === currentIndex ? 'bg-amber-400' : idx < currentIndex ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
+                  <span className="text-xs">{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Action Card */}
         <Card className="shadow-medium border-0 gradient-card">
-          <CardContent className="pt-6 space-y-4">
+          <CardHeader>
+            <CardTitle>Review</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-2 space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-xl font-bold">John Doe</h2>
-                <p className="text-muted-foreground">ID: {id || "VJS2024001"}</p>
+                <h2 className="text-xl font-bold">{app?.profile?.profile?.profile?.firstName || app?.userId || 'Member'}</h2>
+                <p className="text-muted-foreground">ID: {id}</p>
               </div>
               <Badge variant="outline" className={
-                status === "approved" ? "bg-success text-success-foreground" : 
-                status === "rejected" ? "bg-destructive text-destructive-foreground" : 
+                app?.status === "Ready for Payment" ? "bg-success text-success-foreground" : 
+                app?.status === "Rejected" ? "bg-destructive text-destructive-foreground" : 
                 "bg-amber-500 text-white"
               }>
-                {status === "approved" ? "Approved" : status === "rejected" ? "Rejected" : "Holding"}
+                {app?.status === "Ready for Payment" ? "Ready" : app?.status === "Rejected" ? "Rejected" : (app?.stages?.[currentIndex]?.status || 'Holding')}
               </Badge>
             </div>
 
@@ -54,7 +132,7 @@ const ApplicationView = () => {
               <Button 
                 onClick={handleApprove} 
                 className="flex-1 bg-success hover:bg-success/90"
-                disabled={status === "approved"}
+                disabled={!app || app.status === 'Ready for Payment' || app.status === 'Rejected'}
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Approve
@@ -63,12 +141,18 @@ const ApplicationView = () => {
                 onClick={handleReject} 
                 variant="destructive" 
                 className="flex-1"
-                disabled={status === "rejected"}
+                disabled={!app || app.status === 'Ready for Payment' || app.status === 'Rejected'}
               >
                 <XCircle className="w-4 h-4 mr-2" />
                 Reject
               </Button>
             </div>
+
+            {app?.status === 'Ready for Payment' && (
+              <Link to="/member/payment">
+                <Button className="w-full">Proceed to Payment</Button>
+              </Link>
+            )}
 
             <Button variant="link" onClick={() => navigate(-1)} className="w-full">
               Back To List
@@ -77,161 +161,20 @@ const ApplicationView = () => {
         </Card>
 
         {/* Application Details - Accordion */}
-        <Card className="shadow-medium border-0">
-          <CardContent className="pt-6">
-            <Accordion type="multiple" className="w-full">
-              <AccordionItem value="personal">
-                <AccordionTrigger className="text-lg font-semibold">
-                  Personal & Demographic Details
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-3 pt-2">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Full Name</p>
-                        <p className="font-medium">John Doe</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Date of Birth</p>
-                        <p className="font-medium">15-Jan-1990</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Father's Name</p>
-                        <p className="font-medium">James Doe</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Mother's Name</p>
-                        <p className="font-medium">Jane Doe</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Gender</p>
-                        <p className="font-medium">Male</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Blood Group</p>
-                        <p className="font-medium">O+</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Contact</p>
-                        <p className="font-medium">+91 98765 43210</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Email</p>
-                        <p className="font-medium">john.doe@email.com</p>
-                      </div>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="address">
-                <AccordionTrigger className="text-lg font-semibold">
-                  Communication Details
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4 pt-2">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">Permanent Address</p>
-                      <p className="font-medium">123 Main Street, Block A</p>
-                      <p className="font-medium">New Delhi, Delhi - 110001</p>
-                      <p className="font-medium">India</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">Correspondence Address</p>
-                      <p className="font-medium text-primary">Same as Permanent Address</p>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="education">
-                <AccordionTrigger className="text-lg font-semibold">
-                  Education Details
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4 pt-2">
-                    <div className="p-4 rounded-lg bg-muted/50">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Qualification</p>
-                          <p className="font-medium">Bachelor of Technology</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">University</p>
-                          <p className="font-medium">Delhi University</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Year of Passing</p>
-                          <p className="font-medium">2012</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Percentage</p>
-                          <p className="font-medium">75%</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="professional">
-                <AccordionTrigger className="text-lg font-semibold">
-                  Professional Details
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-3 pt-2">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Current Designation</p>
-                        <p className="font-medium">Senior Engineer</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Current Organisation</p>
-                        <p className="font-medium">Tech Corp India</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total Experience</p>
-                        <p className="font-medium">12 years</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Current CTC</p>
-                        <p className="font-medium">₹15,00,000</p>
-                      </div>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="documents">
-                <AccordionTrigger className="text-lg font-semibold">
-                  Documents Upload
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-3 pt-2">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-sm text-muted-foreground">Photo</p>
-                        <p className="font-medium text-primary">✓ Uploaded</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-sm text-muted-foreground">Signature</p>
-                        <p className="font-medium text-primary">✓ Uploaded</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-sm text-muted-foreground">Aadhar Card</p>
-                        <p className="font-medium text-primary">✓ Uploaded</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-sm text-muted-foreground">PAN Card</p>
-                        <p className="font-medium text-primary">✓ Uploaded</p>
-                      </div>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </CardContent>
-        </Card>
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="profile">
+            <AccordionTrigger>Profile</AccordionTrigger>
+            <AccordionContent>
+              <pre className="text-xs bg-muted p-3 rounded-md overflow-auto">{JSON.stringify(app?.profile, null, 2)}</pre>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="stages">
+            <AccordionTrigger>Stages</AccordionTrigger>
+            <AccordionContent>
+              <pre className="text-xs bg-muted p-3 rounded-md overflow-auto">{JSON.stringify(app?.stages, null, 2)}</pre>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
     </div>
   );

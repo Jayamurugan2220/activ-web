@@ -108,6 +108,28 @@ export default function MemberProfile() {
     localStorage.setItem("userName", `${data.firstName} ${data.lastName ?? ""}`.trim());
     localStorage.setItem("registrationData", JSON.stringify(data));
 
+    // try to persist core profile in backend as well
+    const userId = localStorage.getItem("memberId");
+    if (userId) {
+      fetch("http://localhost:4000/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          dateOfBirth: data.dateOfBirth,
+          gender: data.gender,
+          state: data.state,
+          district: data.district,
+          block: data.block,
+          address: data.address,
+        }),
+      }).catch(() => {/* ignore backend errors */});
+    }
+
     setIsEditing(false);
     toast.success("Profile saved successfully");
   };
@@ -150,11 +172,48 @@ export default function MemberProfile() {
     return `APP-${year}-${String(seq).padStart(3, '0')}`;
   }
 
-  const saveExtra = () => {
+  const saveExtra = async () => {
     localStorage.setItem("userProfileDetails", JSON.stringify(extra));
+    const userId = localStorage.getItem("memberId");
 
-    // create an application record when user finishes the additional details
-    const appId = generateApplicationId();
+    if (!userId) {
+      toast.error("User not logged in");
+      return;
+    }
+
+    // Try to save additional details to backend
+    try {
+      const response = await fetch("http://localhost:4000/api/profile/additional-details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, details: extra }),
+      });
+      if (!response.ok) {
+        console.warn("Backend save failed, continuing with localStorage");
+      }
+    } catch (e) {
+      console.warn("Backend unavailable, continuing with localStorage", e);
+    }
+
+    // create an application record on backend; fall back to local id if needed
+    let appId = '';
+    const profileSnapshot = JSON.parse(localStorage.getItem('userProfile') || '{}');
+    try {
+      const resp = await fetch("http://localhost:4000/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, profileSnapshot, detailsSnapshot: extra }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        appId = data?.application?.id || '';
+      }
+    } catch (e) {
+      // ignore and fallback
+    }
+
+    if (!appId) appId = generateApplicationId();
+
     const stages = [
       { id: 1, key: 'block', title: 'Block Admin Review', reviewer: 'Rajesh Kumar (Block Admin)', status: 'Under Review', reviewDate: null, notes: '' },
       { id: 2, key: 'district', title: 'District Admin Review', reviewer: 'Priya Sharma (District Admin)', status: 'Pending', reviewDate: null, notes: '' },
@@ -169,7 +228,7 @@ export default function MemberProfile() {
       stage: 1,
       stages,
       profile: {
-        profile: JSON.parse(localStorage.getItem('userProfile') || '{}'),
+        profile: profileSnapshot,
         extra: extra,
       }
     };

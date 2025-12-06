@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
@@ -17,7 +17,17 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  // Map special admin emails to roles
+  
+  const idToRole = (id: string): string => {
+    const s = (id || '').toUpperCase();
+    if (s.startsWith('BA')) return 'block_admin';
+    if (s.startsWith('DA')) return 'district_admin';
+    if (s.startsWith('SA')) return 'state_admin';
+    if (s.startsWith('SU')) return 'super_admin';
+    return 'member';
+  };
+const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       // Try backend login first
@@ -33,12 +43,17 @@ export default function LoginPage() {
           const found = json.user;
           localStorage.setItem('userName', found.firstName || found.email || found.memberId);
           localStorage.setItem('memberId', found.memberId);
-          localStorage.setItem('isLoggedIn', 'true');
-          navigate('/member/dashboard');
-          return;
+if (found && found.role) localStorage.setItem('role', found.role);
+const roleDerived: string = (found && typeof found.role === 'string' && found.role) || emailToRole((found && found.email) ? found.email : email);
+localStorage.setItem('role', roleDerived);
+localStorage.setItem('isLoggedIn', 'true');
+const isAdmin = ['super_admin','state_admin','district_admin','block_admin'].includes(roleDerived);
+const adminPath = roleDerived === 'block_admin' ? '/admin/block/dashboard' : '/admin/dashboard';
+navigate(isAdmin ? adminPath : '/member/dashboard');
+return;
         }
       } catch (err) {
-        // no backend — fallback to localStorage
+        // no backend â€” fallback to localStorage
       }
 
       const usersJson = localStorage.getItem('users');
@@ -61,9 +76,14 @@ export default function LoginPage() {
       }
 
       localStorage.setItem('userName', found.firstName || found.email || found.memberId);
-      localStorage.setItem('memberId', found.memberId);
-      localStorage.setItem('isLoggedIn', 'true');
-      navigate('/member/dashboard');
+localStorage.setItem('memberId', found.memberId);
+if (found && found.role) localStorage.setItem('role', found.role);
+const roleDerived: string = (found && typeof found.role === 'string' && found.role) || emailToRole((found && found.email) ? found.email : email);
+localStorage.setItem('role', roleDerived);
+localStorage.setItem('isLoggedIn', 'true');
+const isAdminFallback = ['super_admin','state_admin','district_admin','block_admin'].includes(roleDerived);
+const adminPath = roleDerived === 'block_admin' ? '/admin/block/dashboard' : '/admin/dashboard';
+navigate(isAdminFallback ? adminPath : '/member/dashboard');
     } catch (err) {
       console.error(err);
       toast.error('Login failed. Please try again later.');
@@ -73,7 +93,11 @@ export default function LoginPage() {
   // if already logged in, redirect to dashboard
   useEffect(() => {
     const logged = localStorage.getItem('isLoggedIn');
-    if (logged === 'true') navigate('/member/dashboard');
+    if (logged === 'true') {
+  const role = localStorage.getItem('role') || '';
+  const adminPath = role === 'block_admin' ? '/admin/block/dashboard' : '/admin/dashboard';
+  navigate(role.endsWith('_admin') ? adminPath : '/member/dashboard');
+}
   }, [navigate]);
 
   return (
@@ -90,8 +114,7 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-gray-900">ACTIV Portal</h1>
           <p className="text-gray-500">Sign in to your account or create a new one</p>
         </div>
-
-        <div className="space-y-4">
+                <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
             <Button
               variant="outline"
@@ -167,3 +190,10 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
+
+
+
+
+

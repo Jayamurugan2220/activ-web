@@ -12,6 +12,7 @@ const MemberDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userName, setUserName] = useState("");
   const [isFirstVisit, setIsFirstVisit] = useState(true);
+  const [latestApplication, setLatestApplication] = useState<any | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,6 +30,41 @@ const MemberDashboard = () => {
       // Mark first visit as complete
       localStorage.setItem("hasVisitedDashboard", "true");
     }
+  }, []);
+
+  // Load latest application from backend (fallback to localStorage)
+  useEffect(() => {
+    const userId = localStorage.getItem("memberId");
+    async function loadApplications() {
+      let apps: any[] = [];
+      // backend first
+      if (userId) {
+        try {
+          const res = await fetch(`http://localhost:4000/api/users/${encodeURIComponent(userId)}/applications`);
+          if (res.ok) {
+            const data = await res.json();
+            apps = Array.isArray(data.applications) ? data.applications : [];
+          }
+        } catch (_) {
+          // ignore
+        }
+      }
+      // fallback to local
+      if (!apps.length) {
+        try {
+          apps = JSON.parse(localStorage.getItem('applications') || '[]');
+        } catch (_) {
+          apps = [];
+        }
+      }
+      if (apps.length) {
+        const sorted = [...apps].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+        setLatestApplication(sorted[0]);
+      } else {
+        setLatestApplication(null);
+      }
+    }
+    loadApplications();
   }, []);
 
   const computeProfileCompletion = (): number => {
@@ -192,6 +228,97 @@ const MemberDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Profile Status Card */}
+            {latestApplication && (
+              <Card className="shadow-medium border-0 w-full mb-6">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-lg font-semibold">Profile Status</h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          latestApplication.stages?.every((s: any) => s.status === 'Approved') ? 'bg-green-100 text-green-700' :
+                          latestApplication.stages?.some((s: any) => s.status === 'Under Review' || s.status === 'In progress') ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {latestApplication.stages?.every((s: any) => s.status === 'Approved') ? 'Approved' :
+                           latestApplication.stages?.some((s: any) => s.status === 'Under Review' || s.status === 'In progress') ? 'In review' : 'Pending'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Your profile is under review. Tap to see status updates</p>
+                      <div className="mt-3">
+                        <Button
+                          className="bg-blue-600 text-white"
+                          onClick={() => navigate(`/member/application-status?id=${encodeURIComponent(latestApplication.id)}`)}
+                        >
+                          View Status
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="hidden md:block w-28 h-28 bg-blue-50 rounded-lg items-center justify-center md:flex">
+                      <img src="/assets/placeholder.svg" alt="status" className="w-20 h-20" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Membership card and documents after membership */}
+            {latestApplication?.payment?.status === 'Completed' && (
+              <>
+                <Card className="w-full mb-6 border-0 shadow-medium bg-gradient-to-r from-purple-600 to-pink-500 text-white">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-semibold bg-white/20 rounded-full px-2 py-0.5">{(latestApplication.payment.plan || 'annual').toString().toUpperCase()}</span>
+                          <span className="text-xs font-semibold bg-green-500 rounded-full px-2 py-0.5">Active</span>
+                        </div>
+                        <div className="text-sm opacity-90">Member since</div>
+                        <div className="text-xl font-bold">
+                          {latestApplication.payment.paidAt ? new Date(latestApplication.payment.paidAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                        </div>
+                        <div className="text-sm mt-1 opacity-90">Member ID: <span className="font-semibold">{latestApplication.id}</span></div>
+                      </div>
+                      <div className="hidden md:block w-10 h-10 rounded-full bg-white/30" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="mb-3">
+                  <h3 className="text-xl font-semibold">Official Documents</h3>
+                  <p className="text-sm text-muted-foreground">Access and download essential documents related to your account</p>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-4 rounded-xl bg-blue-100 text-blue-900"
+                    onClick={() => navigate('/member/certificate')}
+                  >
+                    <span className="font-medium">Download Membership Certificate</span>
+                    <span>⬇️</span>
+                  </button>
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-4 rounded-xl bg-green-100 text-green-900"
+                    onClick={() => {
+                      const blob = new Blob([`Tax Exemption Certificate\nMember: ${userName || 'Member'}\nMember ID: ${latestApplication.id}\nDate: ${new Date().toLocaleDateString()}`], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `Tax-Exemption-${latestApplication.id}.txt`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    <span className="font-medium">Download Tax Exemption Certificate</span>
+                    <span>⬇️</span>
+                  </button>
+                </div>
+              </>
+            )}
 
             {/* Quick actions grid - mobile optimized (single set, clickable) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

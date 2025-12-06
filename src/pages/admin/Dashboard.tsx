@@ -15,9 +15,9 @@ import AdminMobileMenu from "@/components/AdminMobileMenu";
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const recentApplications = [
-    { id: "VJS2024001", name: "John Doe", status: "approved", date: "2024-01-15" },
-    { id: "VJS2024002", name: "Jane Smith", status: "pending", date: "2024-01-14" },
-    { id: "VJS2024003", name: "Robert Brown", status: "approved", date: "2024-01-13" },
+    { id: "Actv2024001", name: "John Doe", status: "approved", date: "2024-01-15" },
+    { id: "Actv2024002", name: "Jane Smith", status: "pending", date: "2024-01-14" },
+    { id: "Actv2024003", name: "Robert Brown", status: "approved", date: "2024-01-13" },
   ];
 
   return (

@@ -94,6 +94,30 @@ const MemberRegister = () => {
 
         if (res.ok) {
           backendOk = true;
+
+          // Also save the full profile to backend after successful registration
+          try {
+            const profilePayload = {
+              userId: data.memberName,
+              firstName: partialData.firstName,
+              lastName: partialData.lastName,
+              email: partialData.email,
+              phone: partialData.mobile,
+              dateOfBirth: partialData.dob,
+              gender: partialData.gender,
+              state: data.stateName,
+              district: data.districtName,
+              block: data.block,
+              address: data.address,
+            };
+            await fetch('http://localhost:4000/api/profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(profilePayload),
+            });
+          } catch (e) {
+            console.warn('Failed to save profile to backend', e);
+          }
         }
       } catch (err) {
         // backend not available — fall back to localStorage

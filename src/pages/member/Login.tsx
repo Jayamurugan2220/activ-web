@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,17 @@ import { toast } from "sonner";
 const MemberLogin = () => {
   const navigate = useNavigate();
   const { register, handleSubmit, formState: { errors } } = useForm<{ memberId: string; password: string }>({ mode: 'onBlur' });
+
+  // Map special admin emails to roles (also supports prefix formats like block., district., state., super.)
+  
+  const idToRole = (id: string): string => {
+    const s = (id || '').toUpperCase();
+    if (s.startsWith('BA')) return 'block_admin';
+    if (s.startsWith('DA')) return 'district_admin';
+    if (s.startsWith('SA')) return 'state_admin';
+    if (s.startsWith('SU')) return 'super_admin';
+    return 'member';
+  };
 
   const handleLogin = async (data: { memberId: string; password: string }) => {
     try {
@@ -26,19 +37,94 @@ const MemberLogin = () => {
           const json = await res.json();
           const found = json.user;
 
-          // Persist full profile returned by backend so UI can consume it
+          // Fetch full profile from backend
           try {
-            localStorage.setItem('userProfile', JSON.stringify(found));
-            // keep registrationData key for compatibility where backend sends the same shape
-            localStorage.setItem('registrationData', JSON.stringify(found));
+            const profileRes = await fetch(`http://localhost:4000/api/profile/${found.memberId}`);
+            if (profileRes.ok) {
+              const profileJson = await profileRes.json();
+              if (profileJson.profile) {
+                localStorage.setItem('userProfile', JSON.stringify({ ...found, ...profileJson.profile }));
+              } else {
+                // No profile stored on backend yet â€” try to upsert from local registration data
+                try {
+                  const regJson = localStorage.getItem('registrationData');
+                  if (regJson) {
+                    const reg = JSON.parse(regJson);
+                    const payload = {
+                      userId: found.memberId,
+                      firstName: reg.firstName || found.firstName,
+                      lastName: reg.lastName,
+                      email: reg.email || found.email,
+                      phone: reg.mobile || reg.phone,
+                      dateOfBirth: reg.dob || reg.dateOfBirth,
+                      gender: reg.gender,
+                      state: reg.state || reg.stateName,
+                      district: reg.district || reg.districtName,
+                      block: reg.block,
+                      address: reg.address,
+                    };
+                    await fetch('http://localhost:4000/api/profile', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload),
+                    });
+                    localStorage.setItem('userProfile', JSON.stringify({ ...found, ...payload }));
+                  } else {
+                    localStorage.setItem('userProfile', JSON.stringify(found));
+                  }
+                } catch (e) {
+                  localStorage.setItem('userProfile', JSON.stringify(found));
+                }
+              }
+            } else {
+              localStorage.setItem('userProfile', JSON.stringify(found));
+            }
           } catch (e) {
-            // ignore storage errors
+            localStorage.setItem('userProfile', JSON.stringify(found));
+          }
+
+          // Fetch additional profile details from backend
+          try {
+            const detailsRes = await fetch(`http://localhost:4000/api/profile/additional-details/${found.memberId}`);
+            if (detailsRes.ok) {
+              const detailsJson = await detailsRes.json();
+              if (detailsJson.record?.details) {
+                localStorage.setItem('userProfileDetails', JSON.stringify(detailsJson.record.details));
+              }
+            }
+          } catch (e) {
+            // ignore if additional details not found
+          }
+
+          // keep registrationData key and ensure it contains merged profile (with district/state if present)
+          try {
+            const up = localStorage.getItem('userProfile');
+            if (up) {
+              localStorage.setItem('registrationData', up);
+            } else {
+              localStorage.setItem('registrationData', JSON.stringify(found));
+            }
+          } catch {
+            localStorage.setItem('registrationData', JSON.stringify(found));
           }
 
           localStorage.setItem('userName', found.firstName || found.email || found.memberId);
           localStorage.setItem('memberId', found.memberId);
-          localStorage.setItem('isLoggedIn', 'true');
-          navigate('/member/dashboard');
+          const fromEmail = emailToRole(found.email || '');
+          const fromId = idToRole(found.memberId || data.memberId);
+          const roleDerived = (typeof found.role === 'string' && found.role)
+            || (fromEmail !== 'member' ? fromEmail : (fromId !== 'member' ? fromId : 'member'));
+          localStorage.setItem('role', roleDerived || 'member');
+
+          const isAdmin = ['super_admin', 'state_admin', 'district_admin', 'block_admin'].includes(roleDerived);
+          if (isAdmin) {
+            localStorage.setItem('isAdminLoggedIn', 'true');
+            const adminPath = roleDerived === 'block_admin' ? '/admin/block/dashboard' : '/admin/dashboard';
+            navigate(adminPath);
+          } else {
+            localStorage.setItem('isLoggedIn', 'true');
+            navigate('/member/dashboard');
+          }
           return;
         }
       } catch (err) {
@@ -82,17 +168,39 @@ const MemberLogin = () => {
           localStorage.setItem('userProfile', JSON.stringify(found));
         }
 
-        // Also keep a registrationData key (compatibility)
-        localStorage.setItem('registrationData', JSON.stringify(found));
+        // Also keep a registrationData key (compatibility) â€” prefer the same data stored in userProfile
+        try {
+          const up = localStorage.getItem('userProfile');
+          if (up) {
+            localStorage.setItem('registrationData', up);
+          } else {
+            localStorage.setItem('registrationData', JSON.stringify(found));
+          }
+        } catch {
+          localStorage.setItem('registrationData', JSON.stringify(found));
+        }
       } catch (e) {
         // ignore
       }
 
-      // Set logged-in session info
+      // Set logged-in session info (local fallback)
       localStorage.setItem("userName", found.firstName || found.email || found.memberId);
       localStorage.setItem("memberId", found.memberId);
-      localStorage.setItem("isLoggedIn", "true");
-      navigate("/member/dashboard");
+      const fromEmail = emailToRole(found.email || '');
+      const fromId = idToRole(found.memberId || data.memberId);
+      const roleDerived = (typeof found.role === 'string' && (found.role as string))
+        || (fromEmail !== 'member' ? fromEmail : (fromId !== 'member' ? fromId : 'member'));
+      localStorage.setItem("role", roleDerived || 'member');
+
+      const isAdmin = ["super_admin", "state_admin", "district_admin", "block_admin"].includes(roleDerived);
+      if (isAdmin) {
+        localStorage.setItem("isAdminLoggedIn", "true");
+        const adminPath = roleDerived === 'block_admin' ? '/admin/block/dashboard' : '/admin/dashboard';
+        navigate(adminPath);
+      } else {
+        localStorage.setItem("isLoggedIn", "true");
+        navigate("/member/dashboard");
+      }
     } catch (err) {
       console.error(err);
       toast.error("Login failed. Please try again later.");
@@ -107,7 +215,7 @@ const MemberLogin = () => {
             <UserCircle className="w-10 h-10 text-primary-foreground" />
           </div>
           <CardTitle className="text-3xl font-bold">Member Login</CardTitle>
-          <CardDescription>Access your VJS member portal</CardDescription>
+          <CardDescription>Access your Actv member portal</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(handleLogin)} className="space-y-6">
@@ -144,3 +252,4 @@ const MemberLogin = () => {
 };
 
 export default MemberLogin;
+

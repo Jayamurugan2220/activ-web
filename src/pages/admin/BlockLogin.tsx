@@ -5,15 +5,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Lock } from "lucide-react";
+import { toast } from "sonner";
 
 const BlockLogin = () => {
   const navigate = useNavigate();
   const [memberId, setMemberId] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/admin/block/dashboard");
+    try {
+      const res = await fetch("http://localhost:4000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: memberId, password }),
+      });
+
+      if (!res.ok) {
+        const msg = (await res.json().catch(() => ({})))?.error || "Login failed";
+        toast.error(msg);
+        return;
+      }
+
+      const json = await res.json();
+      const found = json.user;
+
+      // Set admin session flags
+      localStorage.setItem("isAdminLoggedIn", "true");
+      localStorage.setItem("adminId", found.memberId || memberId);
+      localStorage.setItem("userName", found.firstName || found.email || found.memberId || memberId);
+      if (found.role) localStorage.setItem("role", found.role);
+
+      navigate("/admin/dashboard");
+    } catch (err) {
+      toast.error("Unable to reach backend. Please try again.");
+    }
   };
 
   return (
