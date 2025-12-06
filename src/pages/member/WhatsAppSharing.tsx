@@ -16,6 +16,7 @@ import {
   Phone
 } from "lucide-react";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 
 // Mock product data
 const products = [
@@ -50,7 +51,7 @@ const WhatsAppSharing = () => {
   const [qrCode, setQrCode] = useState("");
 
   // Generate shareable link
-  const shareableLink = `https://activ.example.com/catalog/${btoa(selectedProducts.join(","))}`;
+  const shareableLink = `${window.location.origin}/catalog/${btoa(selectedProducts.join(","))}`;
 
   const toggleProductSelection = (productId: string) => {
     if (selectedProducts.includes(productId)) {
@@ -68,8 +69,7 @@ const WhatsAppSharing = () => {
   };
 
   const generateQRCode = () => {
-    // In a real app, this would generate an actual QR code
-    setQrCode("QR_CODE_PLACEHOLDER");
+    setQrCode(shareableLink);
     toast.success("QR code generated!");
   };
 
@@ -106,7 +106,6 @@ Products:
 ${productList}
 
 View full catalog: ${shareableLink}`;
-    const encodedMessage = encodeURIComponent(fullMessage);
     
     // For demo purposes, we'll just show the message that would be sent
     toast.success("Catalog shared successfully!");
@@ -274,6 +273,7 @@ View full catalog: ${shareableLink}`;
                   variant="outline" 
                   className="w-full"
                   onClick={generateQRCode}
+                  disabled={selectedProducts.length === 0}
                 >
                   <QrCode className="w-4 h-4 mr-2" />
                   Generate QR Code
@@ -281,10 +281,11 @@ View full catalog: ${shareableLink}`;
                 
                 {qrCode && (
                   <div className="flex flex-col items-center gap-2 p-4 bg-muted/50 rounded-lg">
-                    <div className="w-32 h-32 bg-white flex items-center justify-center">
-                      <span className="text-xs text-center">QR CODE PLACEHOLDER</span>
-                    </div>
+                    <QRCodeSVG value={qrCode} size={128} />
                     <p className="text-sm text-muted-foreground">Scan to view catalog</p>
+                    <Button variant="outline" size="sm" onClick={() => setQrCode("")}>
+                      Close
+                    </Button>
                   </div>
                 )}
               </CardContent>

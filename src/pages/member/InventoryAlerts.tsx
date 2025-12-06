@@ -96,6 +96,13 @@ const InventoryAlerts = () => {
     console.log("Resolving alert", id);
   };
 
+  // Function to send WhatsApp alert
+  const sendWhatsAppAlert = (alert: any) => {
+    const message = `⚠️ INVENTORY ALERT ⚠️%0A%0AItem: ${alert.itemName}%0ACurrent Stock: ${alert.currentStock} units%0AMinimum Required: ${alert.minStock} units%0ACategory: ${alert.category}%0ASeverity: ${alert.severity}%0A%0AAction required immediately.`;
+    const whatsappUrl = `https://wa.me/?text=${message}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
     <div className="min-h-screen p-4 pb-24">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -323,15 +330,28 @@ const InventoryAlerts = () => {
                         </p>
                       </div>
                       
-                      {!alert.resolved && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => resolveAlert(alert.id)}
-                        >
-                          Mark as Resolved
-                        </Button>
-                      )}
+                      <div className="flex flex-col gap-2">
+                        {!alert.resolved && (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => resolveAlert(alert.id)}
+                            >
+                              Mark as Resolved
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => sendWhatsAppAlert(alert)}
+                              className="flex items-center gap-1"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                              <span className="hidden md:inline">WhatsApp</span>
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))

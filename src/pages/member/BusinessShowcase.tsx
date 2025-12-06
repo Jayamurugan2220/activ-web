@@ -31,6 +31,7 @@ const BusinessShowcase = () => {
     tagline: "Premium organic cotton textiles for sustainable fashion",
     description: "We are a leading manufacturer of premium organic cotton textiles, committed to sustainability and ethical production practices. Our products are made from 100% organic cotton, ethically sourced and produced with eco-friendly processes.",
     category: "Textiles",
+    subCategories: ["Organic", "Sustainable", "Wholesale"],
     established: "2018",
     employees: "50-100",
     address: "123 Industrial Area, Block A",
@@ -40,6 +41,7 @@ const BusinessShowcase = () => {
     phone: "+91 98765 43210",
     email: "info@greentextiles.com",
     website: "www.greentextiles.com",
+    mapLink: "https://maps.google.com/?q=123+Industrial+Area,+Coimbatore",
     socialLinks: {
       instagram: "greentextiles",
       facebook: "greentextiles",
@@ -73,20 +75,24 @@ const BusinessShowcase = () => {
     }));
   };
 
+  const openMap = () => {
+    window.open(businessInfo.mapLink, "_blank");
+  };
+
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <div className="min-h-screen bg-background p-4 pb-24">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 py-4">
           <Link to="/member/dashboard">
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="rounded-full">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">Business Showcase</h1>
+          <h1 className="text-2xl font-bold text-foreground">Business Showcase</h1>
           <Button 
             variant="outline" 
-            className="ml-auto"
+            className="ml-auto rounded-full"
             onClick={() => setEditing(!editing)}
           >
             <Edit className="w-4 h-4 mr-2" />
@@ -95,10 +101,10 @@ const BusinessShowcase = () => {
         </div>
 
         {/* Cover Photo */}
-        <div className="relative h-64 rounded-lg overflow-hidden bg-muted">
+        <div className="relative h-64 rounded-xl overflow-hidden bg-muted">
           {editing ? (
             <div className="w-full h-full flex items-center justify-center bg-muted/50">
-              <Button variant="outline">
+              <Button variant="secondary" className="rounded-full">
                 <Camera className="w-5 h-5 mr-2" />
                 Change Cover Photo
               </Button>
@@ -109,8 +115,8 @@ const BusinessShowcase = () => {
           
           {/* Business Logo */}
           <div className="absolute bottom-4 left-4">
-            <Avatar className="w-24 h-24 border-4 border-white">
-              <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+            <Avatar className="w-24 h-24 border-4 border-white rounded-full">
+              <AvatarFallback className="bg-primary text-primary-foreground text-2xl rounded-full">
                 GT
               </AvatarFallback>
             </Avatar>
@@ -118,7 +124,7 @@ const BusinessShowcase = () => {
         </div>
 
         {/* Business Info */}
-        <Card className="shadow-medium border-0 -mt-12 relative z-10">
+        <Card className="shadow-lg border-0 -mt-12 relative z-10 rounded-xl">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <div>
@@ -128,39 +134,42 @@ const BusinessShowcase = () => {
                       name="name" 
                       value={businessInfo.name} 
                       onChange={handleInputChange}
-                      className="text-2xl font-bold"
+                      className="text-2xl font-bold border-none p-0 h-auto focus-visible:ring-0"
                     />
                     <Input 
                       name="tagline" 
                       value={businessInfo.tagline} 
                       onChange={handleInputChange}
-                      className="text-muted-foreground"
+                      className="text-muted-foreground border-none p-0 h-auto focus-visible:ring-0"
                     />
                   </div>
                 ) : (
                   <>
-                    <h2 className="text-2xl font-bold">{businessInfo.name}</h2>
+                    <h2 className="text-2xl font-bold text-foreground">{businessInfo.name}</h2>
                     <p className="text-muted-foreground">{businessInfo.tagline}</p>
                   </>
                 )}
                 
                 <div className="flex flex-wrap items-center gap-2 mt-3">
-                  <Badge variant="secondary">{businessInfo.category}</Badge>
-                  <Badge variant="outline">Established {businessInfo.established}</Badge>
-                  <Badge variant="outline">{businessInfo.employees} Employees</Badge>
+                  <Badge variant="default" className="rounded-full px-3 py-1">{businessInfo.category}</Badge>
+                  {businessInfo.subCategories.map((subCat, index) => (
+                    <Badge key={index} variant="secondary" className="rounded-full px-3 py-1">{subCat}</Badge>
+                  ))}
+                  <Badge variant="outline" className="rounded-full px-3 py-1">Established {businessInfo.established}</Badge>
+                  <Badge variant="outline" className="rounded-full px-3 py-1">{businessInfo.employees} Employees</Badge>
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    <span className="text-sm">4.7 (128 reviews)</span>
+                    <span className="text-sm text-foreground">4.7 (128 reviews)</span>
                   </div>
                 </div>
               </div>
               
               <div className="flex gap-2">
-                <Button variant="outline">
+                <Button variant="outline" className="rounded-full">
                   <Package className="w-4 h-4 mr-2" />
                   View Products
                 </Button>
-                <Button>
+                <Button className="rounded-full bg-primary hover:bg-primary/90">
                   <Users className="w-4 h-4 mr-2" />
                   Contact Business
                 </Button>
@@ -173,9 +182,9 @@ const BusinessShowcase = () => {
           {/* Left Column - Business Details */}
           <div className="lg:col-span-2 space-y-6">
             {/* About Business */}
-            <Card className="shadow-medium border-0">
+            <Card className="shadow-lg border-0 rounded-xl">
               <CardHeader>
-                <CardTitle>About Business</CardTitle>
+                <CardTitle className="text-foreground">About Business</CardTitle>
               </CardHeader>
               <CardContent>
                 {editing ? (
@@ -184,6 +193,7 @@ const BusinessShowcase = () => {
                     value={businessInfo.description} 
                     onChange={handleInputChange}
                     rows={6}
+                    className="resize-none"
                   />
                 ) : (
                   <p className="text-muted-foreground">{businessInfo.description}</p>
@@ -192,12 +202,12 @@ const BusinessShowcase = () => {
             </Card>
 
             {/* Gallery */}
-            <Card className="shadow-medium border-0">
+            <Card className="shadow-lg border-0 rounded-xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Business Gallery</CardTitle>
+                  <CardTitle className="text-foreground">Business Gallery</CardTitle>
                   {editing && (
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="rounded-full">
                       <Plus className="w-4 h-4 mr-2" />
                       Add Photos
                     </Button>
@@ -207,7 +217,7 @@ const BusinessShowcase = () => {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {galleryImages.map((image, index) => (
-                    <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted relative group">
+                    <div key={index} className="aspect-square rounded-xl overflow-hidden bg-muted relative group">
                       <img 
                         src={image} 
                         alt={`Gallery ${index + 1}`} 
@@ -215,7 +225,7 @@ const BusinessShowcase = () => {
                       />
                       {editing && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="outline" size="sm">
+                          <Button variant="secondary" size="sm" className="rounded-full">
                             <Edit className="w-4 h-4" />
                           </Button>
                         </div>
@@ -227,15 +237,15 @@ const BusinessShowcase = () => {
             </Card>
 
             {/* Products Showcase */}
-            <Card className="shadow-medium border-0">
+            <Card className="shadow-lg border-0 rounded-xl">
               <CardHeader>
-                <CardTitle>Featured Products</CardTitle>
+                <CardTitle className="text-foreground">Featured Products</CardTitle>
                 <CardDescription>Our popular products</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[1, 2, 3].map((item) => (
-                    <div key={item} className="border rounded-lg overflow-hidden">
+                    <div key={item} className="border rounded-xl overflow-hidden hover:shadow-md transition-shadow">
                       <div className="aspect-square bg-muted flex items-center justify-center">
                         <img 
                           src="/placeholder.svg" 
@@ -243,8 +253,8 @@ const BusinessShowcase = () => {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="p-3">
-                        <h4 className="font-medium">Organic Cotton Product {item}</h4>
+                      <div className="p-4">
+                        <h4 className="font-medium text-foreground">Organic Cotton Product {item}</h4>
                         <p className="text-sm text-muted-foreground mt-1">₹{1200 + (item * 100)}</p>
                       </div>
                     </div>
@@ -257,15 +267,15 @@ const BusinessShowcase = () => {
           {/* Right Column - Contact Info */}
           <div className="space-y-6">
             {/* Contact Information */}
-            <Card className="shadow-medium border-0">
+            <Card className="shadow-lg border-0 rounded-xl">
               <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
+                <CardTitle className="text-foreground">Contact Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium">Address</p>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Address</p>
                     {editing ? (
                       <div className="space-y-2 mt-1">
                         <Input 
@@ -294,12 +304,27 @@ const BusinessShowcase = () => {
                           onChange={handleInputChange}
                           placeholder="Pincode"
                         />
+                        <Input 
+                          name="mapLink" 
+                          value={businessInfo.mapLink} 
+                          onChange={handleInputChange}
+                          placeholder="Map link URL"
+                        />
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">
-                        {businessInfo.address}<br />
-                        {businessInfo.city}, {businessInfo.state} - {businessInfo.pincode}
-                      </p>
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          {businessInfo.address}<br />
+                          {businessInfo.city}, {businessInfo.state} - {businessInfo.pincode}
+                        </p>
+                        <Button 
+                          variant="link" 
+                          className="p-0 h-auto mt-2 text-primary hover:underline"
+                          onClick={openMap}
+                        >
+                          View on map
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -307,7 +332,7 @@ const BusinessShowcase = () => {
                 <div className="flex items-center gap-3">
                   <Phone className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="font-medium">Phone</p>
+                    <p className="font-medium text-foreground">Phone</p>
                     {editing ? (
                       <Input 
                         name="phone" 
@@ -324,7 +349,7 @@ const BusinessShowcase = () => {
                 <div className="flex items-center gap-3">
                   <Mail className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="font-medium">Email</p>
+                    <p className="font-medium text-foreground">Email</p>
                     {editing ? (
                       <Input 
                         name="email" 
@@ -341,7 +366,7 @@ const BusinessShowcase = () => {
                 <div className="flex items-center gap-3">
                   <Globe className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="font-medium">Website</p>
+                    <p className="font-medium text-foreground">Website</p>
                     {editing ? (
                       <Input 
                         name="website" 
@@ -350,7 +375,14 @@ const BusinessShowcase = () => {
                         className="mt-1"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{businessInfo.website}</p>
+                      <a 
+                        href={`http://${businessInfo.website}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-muted-foreground hover:underline"
+                      >
+                        {businessInfo.website}
+                      </a>
                     )}
                   </div>
                 </div>
@@ -358,9 +390,9 @@ const BusinessShowcase = () => {
             </Card>
 
             {/* Social Links */}
-            <Card className="shadow-medium border-0">
+            <Card className="shadow-lg border-0 rounded-xl">
               <CardHeader>
-                <CardTitle>Social Links</CardTitle>
+                <CardTitle className="text-foreground">Social Links</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -448,23 +480,23 @@ const BusinessShowcase = () => {
             </Card>
 
             {/* Business Hours */}
-            <Card className="shadow-medium border-0">
+            <Card className="shadow-lg border-0 rounded-xl">
               <CardHeader>
-                <CardTitle>Business Hours</CardTitle>
+                <CardTitle className="text-foreground">Business Hours</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Monday - Friday</span>
-                    <span>9:00 AM - 6:00 PM</span>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <span className="font-medium text-foreground">Monday - Friday</span>
+                    <span className="text-muted-foreground">9:00 AM - 6:00 PM</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Saturday</span>
-                    <span>10:00 AM - 4:00 PM</span>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <span className="font-medium text-foreground">Saturday</span>
+                    <span className="text-muted-foreground">10:00 AM - 4:00 PM</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Sunday</span>
-                    <span>Closed</span>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <span className="font-medium text-foreground">Sunday</span>
+                    <span className="text-muted-foreground">Closed</span>
                   </div>
                 </div>
               </CardContent>

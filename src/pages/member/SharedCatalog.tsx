@@ -10,8 +10,13 @@ import {
   Phone,
   Mail,
   MapPin,
-  IndianRupee
+  IndianRupee,
+  QrCode,
+  Copy,
+  Check
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { toast } from "sonner";
 
 // Mock business info
 const businessInfo = {
@@ -91,6 +96,8 @@ const allProducts = [
 const SharedCatalog = () => {
   const { catalogId } = useParams();
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   // Decode the catalog ID to get selected products
   let selectedProductIds: string[] = [];
@@ -121,6 +128,25 @@ const SharedCatalog = () => {
     window.open(whatsappUrl, '_blank');
   };
 
+  const shareViaWhatsApp = () => {
+    const currentUrl = window.location.href;
+    const message = encodeURIComponent(`Check out this product catalog from ${businessInfo.name}!\n\n${currentUrl}`);
+    const whatsappUrl = `https://wa.me/?text=${message}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const copyLink = () => {
+    const currentUrl = window.location.href;
+    navigator.clipboard.writeText(currentUrl);
+    setCopied(true);
+    toast.success("Link copied to clipboard!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const generateQRCode = () => {
+    setShowQRCode(true);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Business Header */}
@@ -141,9 +167,9 @@ const SharedCatalog = () => {
                 Contact Seller
               </Button>
               <Button variant="secondary" className="text-primary" asChild>
-                <Link to="/">
+                <Link to="/member/whatsapp/share">
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share Catalog
+                  Create New Catalog
                 </Link>
               </Button>
             </div>
@@ -183,6 +209,53 @@ const SharedCatalog = () => {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Sharing Options */}
+        <Card className="shadow-medium border-0 mb-6">
+          <CardHeader>
+            <CardTitle>Share This Catalog</CardTitle>
+            <CardDescription>Share this product catalog with your contacts</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={shareViaWhatsApp}>
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Share via WhatsApp
+              </Button>
+              
+              <Button variant="outline" onClick={copyLink}>
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2 text-green-500" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Link
+                  </>
+                )}
+              </Button>
+              
+              <Button variant="outline" onClick={generateQRCode}>
+                <QrCode className="w-4 h-4 mr-2" />
+                Show QR Code
+              </Button>
+            </div>
+            
+            {showQRCode && (
+              <div className="flex flex-col items-center gap-4 p-6 bg-muted/50 rounded-lg mt-4">
+                <QRCodeSVG value={window.location.href} size={192} />
+                <p className="text-sm text-muted-foreground text-center">
+                  Scan this QR code to view the catalog on your mobile device
+                </p>
+                <Button variant="outline" size="sm" onClick={() => setShowQRCode(false)}>
+                  Close
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

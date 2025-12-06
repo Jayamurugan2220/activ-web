@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useOrder } from "@/contexts/OrderContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,46 +15,8 @@ import {
   Clock
 } from "lucide-react";
 
-const orders = [
-  {
-    id: "ORD2024001",
-    date: "2024-01-15",
-    status: "delivered",
-    total: 3500,
-    items: 2,
-    seller: "Green Textiles Co.",
-    image: "/placeholder.svg"
-  },
-  {
-    id: "ORD2024002",
-    date: "2024-01-10",
-    status: "shipped",
-    total: 1200,
-    items: 1,
-    seller: "Artisan Pottery Studio",
-    image: "/placeholder.svg"
-  },
-  {
-    id: "ORD2024003",
-    date: "2024-01-05",
-    status: "processing",
-    total: 4500,
-    items: 3,
-    seller: "Heritage Spices Ltd",
-    image: "/placeholder.svg"
-  },
-  {
-    id: "ORD2023125",
-    date: "2023-12-20",
-    status: "cancelled",
-    total: 2800,
-    items: 2,
-    seller: "Traditional Weavers",
-    image: "/placeholder.svg"
-  }
-];
-
 const Orders = () => {
+  const { orders } = useOrder();
   const [filter, setFilter] = useState("all");
 
   const filteredOrders = filter === "all" 
@@ -209,56 +172,54 @@ const Orders = () => {
         <div className="space-y-4">
           {filteredOrders.map((order) => (
             <Card key={order.id} className="shadow-medium border-0">
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row md:items-center gap-4">
-                  <img 
-                    src={order.image} 
-                    alt={order.seller} 
-                    className="w-20 h-20 object-cover rounded-lg"
-                  />
+              <CardContent className="p-0">
+                <div className="flex flex-col md:flex-row">
+                  <div className="md:w-24 md:h-24 p-4">
+                    <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
+                      <ShoppingCart className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                  </div>
                   
-                  <div className="flex-1">
+                  <div className="flex-1 p-4">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <div>
-                        <h3 className="font-semibold">Order #{order.id}</h3>
-                        <p className="text-sm text-muted-foreground">{order.date}</p>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold">Order #{order.id}</h3>
+                          <Badge className={getStatusColor(order.status)}>
+                            <div className="flex items-center gap-1">
+                              {getStatusIcon(order.status)}
+                              <span className="capitalize">{order.status}</span>
+                            </div>
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {order.date} • {order.items.length} items
+                        </p>
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <Badge className={`${getStatusColor(order.status)} text-white`}>
-                          <div className="flex items-center gap-1">
-                            {getStatusIcon(order.status)}
-                            <span className="capitalize">{order.status}</span>
-                          </div>
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                            {order.seller.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{order.seller}</p>
-                          <p className="text-xs text-muted-foreground">{order.items} items</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-4">
                         <div className="flex items-baseline gap-1">
                           <IndianRupee className="w-4 h-4 text-muted-foreground" />
                           <span className="font-bold">{order.total}</span>
                         </div>
-                        
                         <Button variant="outline" size="sm" asChild>
                           <Link to={`/marketplace/order/${order.id}`}>
                             View Details
                           </Link>
                         </Button>
                       </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Button variant="outline" size="sm">
+                        Track Order
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        Return Item
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        Contact Seller
+                      </Button>
                     </div>
                   </div>
                 </div>

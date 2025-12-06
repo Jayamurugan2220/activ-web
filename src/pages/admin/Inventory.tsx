@@ -7,19 +7,21 @@ import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   Package,
-  Plus,
-  Edit,
   AlertTriangle,
   TrendingUp,
   TrendingDown,
-  MessageSquare
+  MessageSquare,
+  Search,
+  Filter
 } from "lucide-react";
 
-// Mock inventory data
-const inventoryItems = [
+// Mock admin inventory data with multiple members
+const adminInventoryItems = [
   {
     id: "INV001",
-    name: "Organic Cotton Textiles - 54 inches",
+    memberId: "MEM001",
+    memberName: "John Doe Enterprises",
+    itemName: "Organic Cotton Textiles - 54 inches",
     sku: "CT-54-ORG",
     category: "Textiles",
     currentStock: 150,
@@ -28,11 +30,14 @@ const inventoryItems = [
     unit: "meters",
     price: 1200,
     lastUpdated: "2024-01-15",
-    lowStock: false
+    lowStock: false,
+    location: "Chennai"
   },
   {
     id: "INV002",
-    name: "Organic Cotton Textiles - 48 inches",
+    memberId: "MEM001",
+    memberName: "John Doe Enterprises",
+    itemName: "Organic Cotton Textiles - 48 inches",
     sku: "CT-48-ORG",
     category: "Textiles",
     currentStock: 30,
@@ -41,11 +46,14 @@ const inventoryItems = [
     unit: "meters",
     price: 1100,
     lastUpdated: "2024-01-14",
-    lowStock: true
+    lowStock: true,
+    location: "Chennai"
   },
   {
     id: "INV003",
-    name: "Handcrafted Pottery - Small Bowl",
+    memberId: "MEM002",
+    memberName: "Green Farms Co-op",
+    itemName: "Handcrafted Pottery - Small Bowl",
     sku: "HP-SB-01",
     category: "Handicrafts",
     currentStock: 75,
@@ -54,11 +62,14 @@ const inventoryItems = [
     unit: "pieces",
     price: 800,
     lastUpdated: "2024-01-12",
-    lowStock: false
+    lowStock: false,
+    location: "Coimbatore"
   },
   {
     id: "INV004",
-    name: "Handcrafted Pottery - Large Vase",
+    memberId: "MEM003",
+    memberName: "Artisan Collective",
+    itemName: "Handcrafted Pottery - Large Vase",
     sku: "HP-LV-01",
     category: "Handicrafts",
     currentStock: 5,
@@ -67,11 +78,14 @@ const inventoryItems = [
     unit: "pieces",
     price: 2500,
     lastUpdated: "2024-01-10",
-    lowStock: true
+    lowStock: true,
+    location: "Madurai"
   },
   {
     id: "INV005",
-    name: "Spices Collection - 500g Pack",
+    memberId: "MEM004",
+    memberName: "Healthy Bites Ltd",
+    itemName: "Spices Collection - 500g Pack",
     sku: "SC-500G",
     category: "Food Products",
     currentStock: 200,
@@ -80,7 +94,24 @@ const inventoryItems = [
     unit: "packs",
     price: 1500,
     lastUpdated: "2024-01-08",
-    lowStock: false
+    lowStock: false,
+    location: "Bangalore"
+  },
+  {
+    id: "INV006",
+    memberId: "MEM002",
+    memberName: "Green Farms Co-op",
+    itemName: "Organic Rice - 10kg Pack",
+    sku: "OR-10KG",
+    category: "Food Products",
+    currentStock: 25,
+    minStock: 50,
+    maxStock: 200,
+    unit: "packs",
+    price: 800,
+    lastUpdated: "2024-01-16",
+    lowStock: true,
+    location: "Coimbatore"
   }
 ];
 
@@ -93,24 +124,31 @@ const categories = [
   "Health & Wellness"
 ];
 
-const Inventory = () => {
+const locations = [
+  "All Locations",
+  "Chennai",
+  "Coimbatore",
+  "Madurai",
+  "Bangalore"
+];
+
+const AdminInventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [selectedLocation, setSelectedLocation] = useState("All Locations");
   const [filter, setFilter] = useState("all");
-  const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [editData, setEditData] = useState({
-    currentStock: 0,
-    minStock: 0,
-    maxStock: 0
-  });
-
-  const filteredItems = inventoryItems
+  
+  const filteredItems = adminInventoryItems
     .filter(item => 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchTerm.toLowerCase())
+      item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.memberName.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .filter(item => 
       selectedCategory === "All Categories" || item.category === selectedCategory
+    )
+    .filter(item => 
+      selectedLocation === "All Locations" || item.location === selectedLocation
     )
     .filter(item => {
       if (filter === "all") return true;
@@ -119,32 +157,14 @@ const Inventory = () => {
       return true;
     });
 
-  const handleEdit = (item: any) => {
-    setEditingItem(item.id);
-    setEditData({
-      currentStock: item.currentStock,
-      minStock: item.minStock,
-      maxStock: item.maxStock
-    });
-  };
+  const totalItems = adminInventoryItems.length;
+  const lowStockItems = adminInventoryItems.filter(item => item.lowStock).length;
+  const totalValue = adminInventoryItems.reduce((sum, item) => sum + (item.currentStock * item.price), 0);
+  const uniqueMembers = Array.from(new Set(adminInventoryItems.map(item => item.memberId))).length;
 
-  const handleSave = (id: string) => {
-    // In a real app, this would update the backend
-    console.log("Saving item", id, editData);
-    setEditingItem(null);
-  };
-
-  const handleCancel = () => {
-    setEditingItem(null);
-  };
-
-  const totalItems = inventoryItems.length;
-  const lowStockItems = inventoryItems.filter(item => item.lowStock).length;
-  const totalValue = inventoryItems.reduce((sum, item) => sum + (item.currentStock * item.price), 0);
-
-  // Function to send low stock alert
-  const sendLowStockAlert = (item: any) => {
-    const message = `⚠️ LOW STOCK ALERT ⚠️%0A%0AItem: ${item.name}%0ACurrent Stock: ${item.currentStock} ${item.unit}%0AMinimum Required: ${item.minStock} ${item.unit}%0A%0APlease restock immediately.`;
+  // Function to send WhatsApp alert
+  const sendWhatsAppAlert = (item: any) => {
+    const message = `⚠️ LOW STOCK ALERT ⚠️%0A%0AItem: ${item.itemName}%0ACurrent Stock: ${item.currentStock} ${item.unit}%0AMinimum Required: ${item.minStock} ${item.unit}%0AMember: ${item.memberName}%0ALocation: ${item.location}%0A%0APlease restock immediately.`;
     const whatsappUrl = `https://wa.me/?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -154,20 +174,16 @@ const Inventory = () => {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Link to="/member/dashboard">
+          <Link to="/admin/dashboard">
             <Button variant="outline" size="icon">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">Inventory Management</h1>
-          <Button className="ml-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Item
-          </Button>
+          <h1 className="text-2xl font-bold">Admin Inventory Management</h1>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="shadow-medium border-0">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -209,16 +225,32 @@ const Inventory = () => {
               </div>
             </CardContent>
           </Card>
+          
+          <Card className="shadow-medium border-0">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Active Members</p>
+                  <p className="text-3xl font-bold">{uniqueMembers}</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Package className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Search and Filters */}
         <Card className="shadow-medium border-0">
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {/* Search */}
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search by item name or SKU..."
+                  placeholder="Search by item, SKU, or member..."
+                  className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -232,6 +264,17 @@ const Inventory = () => {
               >
                 {categories.map(category => (
                   <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+              
+              {/* Location Filter */}
+              <select
+                className="border border-input bg-background rounded-md px-3 py-2 text-sm"
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+              >
+                {locations.map(location => (
+                  <option key={location} value={location}>{location}</option>
                 ))}
               </select>
               
@@ -253,19 +296,20 @@ const Inventory = () => {
         <Card className="shadow-medium border-0">
           <CardHeader>
             <CardTitle>Inventory Items</CardTitle>
-            <CardDescription>Manage your product inventory</CardDescription>
+            <CardDescription>Track inventory across all members</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
+                    <th className="text-left py-3">Member</th>
                     <th className="text-left py-3">Item</th>
                     <th className="text-left py-3">SKU</th>
                     <th className="text-left py-3">Category</th>
+                    <th className="text-left py-3">Location</th>
                     <th className="text-left py-3">Current Stock</th>
                     <th className="text-left py-3">Min Stock</th>
-                    <th className="text-left py-3">Max Stock</th>
                     <th className="text-left py-3">Last Updated</th>
                     <th className="text-left py-3">Actions</th>
                   </tr>
@@ -275,7 +319,13 @@ const Inventory = () => {
                     <tr key={item.id} className={`border-b ${item.lowStock ? "bg-amber-50" : ""}`}>
                       <td className="py-4">
                         <div>
-                          <p className="font-medium">{item.name}</p>
+                          <p className="font-medium">{item.memberName}</p>
+                          <p className="text-sm text-muted-foreground">{item.memberId}</p>
+                        </div>
+                      </td>
+                      <td className="py-4">
+                        <div>
+                          <p className="font-medium">{item.itemName}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-sm">₹{item.price.toLocaleString()}</span>
                             {item.lowStock && (
@@ -294,76 +344,33 @@ const Inventory = () => {
                         <Badge variant="secondary">{item.category}</Badge>
                       </td>
                       <td className="py-4">
-                        {editingItem === item.id ? (
-                          <Input
-                            type="number"
-                            value={editData.currentStock}
-                            onChange={(e) => setEditData({...editData, currentStock: parseInt(e.target.value) || 0})}
-                            className="w-24"
-                          />
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span>{item.currentStock} {item.unit}</span>
-                            {item.currentStock > item.maxStock && (
-                              <TrendingUp className="w-4 h-4 text-green-500" />
-                            )}
-                          </div>
-                        )}
+                        <span className="text-sm">{item.location}</span>
                       </td>
                       <td className="py-4">
-                        {editingItem === item.id ? (
-                          <Input
-                            type="number"
-                            value={editData.minStock}
-                            onChange={(e) => setEditData({...editData, minStock: parseInt(e.target.value) || 0})}
-                            className="w-24"
-                          />
-                        ) : (
-                          <span>{item.minStock} {item.unit}</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span>{item.currentStock} {item.unit}</span>
+                          {item.currentStock > item.maxStock && (
+                            <TrendingUp className="w-4 h-4 text-green-500" />
+                          )}
+                        </div>
                       </td>
                       <td className="py-4">
-                        {editingItem === item.id ? (
-                          <Input
-                            type="number"
-                            value={editData.maxStock}
-                            onChange={(e) => setEditData({...editData, maxStock: parseInt(e.target.value) || 0})}
-                            className="w-24"
-                          />
-                        ) : (
-                          <span>{item.maxStock} {item.unit}</span>
-                        )}
+                        <span>{item.minStock} {item.unit}</span>
                       </td>
                       <td className="py-4">
                         <span className="text-sm text-muted-foreground">{item.lastUpdated}</span>
                       </td>
                       <td className="py-4">
-                        {editingItem === item.id ? (
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleSave(item.id)}>
-                              Save
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={handleCancel}>
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            {item.lowStock && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => sendLowStockAlert(item)}
-                                className="flex items-center gap-1"
-                              >
-                                <MessageSquare className="w-4 h-4" />
-                                <span className="hidden md:inline">Alert</span>
-                              </Button>
-                            )}
-                          </div>
+                        {item.lowStock && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => sendWhatsAppAlert(item)}
+                            className="flex items-center gap-1"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            <span className="hidden md:inline">Alert</span>
+                          </Button>
                         )}
                       </td>
                     </tr>
@@ -392,22 +399,22 @@ const Inventory = () => {
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
                 Low Stock Alerts
               </CardTitle>
-              <CardDescription>Items that need restocking</CardDescription>
+              <CardDescription>Items that need immediate attention across all members</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {inventoryItems.filter(item => item.lowStock).map(item => (
+                {adminInventoryItems.filter(item => item.lowStock).map(item => (
                   <div key={item.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
                     <div>
-                      <p className="font-medium">{item.name}</p>
+                      <p className="font-medium">{item.itemName}</p>
                       <p className="text-sm text-muted-foreground">
-                        Current: {item.currentStock} {item.unit} | Min: {item.minStock} {item.unit}
+                        Member: {item.memberName} | Current: {item.currentStock} {item.unit} | Min: {item.minStock} {item.unit}
                       </p>
                     </div>
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      onClick={() => sendLowStockAlert(item)}
+                      onClick={() => sendWhatsAppAlert(item)}
                       className="flex items-center gap-1"
                     >
                       <MessageSquare className="w-4 h-4" />
@@ -424,4 +431,4 @@ const Inventory = () => {
   );
 };
 
-export default Inventory;
+export default AdminInventory;

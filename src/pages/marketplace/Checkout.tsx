@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "@/contexts/CartContext";
+import { useOrder } from "@/contexts/OrderContext";
+import instamojoService from "@/services/instamojoService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +20,9 @@ import {
 } from "lucide-react";
 
 const Checkout = () => {
+  const navigate = useNavigate();
+  const { items, clearCart } = useCart();
+  const { addOrder } = useOrder();
   const [activeStep, setActiveStep] = useState(1);
   const [shippingInfo, setShippingInfo] = useState({
     name: "",
@@ -30,29 +36,8 @@ const Checkout = () => {
   });
   const [paymentMethod, setPaymentMethod] = useState("card");
 
-  const cartItems = [
-    {
-      id: "CART001",
-      productId: "P001",
-      name: "Organic Cotton Textiles",
-      seller: "Green Textiles Co.",
-      price: 1200,
-      quantity: 2,
-      image: "/placeholder.svg"
-    },
-    {
-      id: "CART002",
-      productId: "P002",
-      name: "Handcrafted Pottery",
-      seller: "Artisan Pottery Studio",
-      price: 800,
-      quantity: 1,
-      image: "/placeholder.svg"
-    }
-  ];
-
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = 100;
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const shipping = subtotal > 500 ? 0 : 100; // Free shipping over ₹500
   const discount = 0;
   const total = subtotal + shipping - discount;
 
@@ -64,21 +49,109 @@ const Checkout = () => {
     }));
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     // In a real app, this would process the payment
-    alert("Order placed successfully!");
+    if (paymentMethod === "instamojo") {
+      // Redirect to Instamojo payment gateway
+      await initiateInstamojoPayment();
+    } else {
+      // For other payment methods, simulate success
+      alert("Order placed successfully!");
+      
+      // Save order data
+      const orderId = addOrder({
+        total,
+        items: items.map(item => ({
+          id: item.id,
+          name: item.name,
+          seller: item.seller,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image
+        })),
+        shipping: shippingInfo
+      });
+      
+      clearCart();
+      navigate("/marketplace/order-confirmation");
+    }
   };
+
+  const initiateInstamojoPayment = async () => {
+    try {
+      // Save order data before payment
+      const orderId = addOrder({
+        total,
+        items: items.map(item => ({
+          id: item.id,
+          name: item.name,
+          seller: item.seller,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image
+        })),
+        shipping: shippingInfo
+      });
+      
+      // Create payment data
+      const paymentData = {
+        amount: total,
+        currency: "INR",
+        buyer_name: shippingInfo.name,
+        email: shippingInfo.email,
+        phone: shippingInfo.phone,
+        purpose: "Product Purchase",
+        redirect_url: `${window.location.origin}/marketplace/order-confirmation`
+      };
+
+      // Generate payment link
+      const paymentLink = await instamojoService.generatePaymentLink(paymentData);
+      
+      // Redirect to payment gateway
+      alert(`Redirecting to Instamojo payment gateway...\n\nIn a real application, you would be redirected to: ${paymentLink}`);
+      
+      // In a real application, you would redirect the user:
+      // window.location.href = paymentLink;
+      
+      // For demo purposes, we'll simulate the payment success
+      setTimeout(() => {
+        clearCart();
+        navigate("/marketplace/order-confirmation");
+      }, 2000);
+    } catch (error) {
+      console.error("Payment initiation failed:", error);
+      alert("Failed to initiate payment. Please try again.");
+    }
+  };
+
+  if (items.length === 0) {
+    return (
+      <div className="min-h-screen p-4 pb-24">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <Card className="shadow-medium border-0">
+            <CardContent className="p-12 text-center">
+              <h3 className="text-xl font-medium mb-2">Your cart is empty</h3>
+              <p className="text-muted-foreground mb-6">
+                Please add items to your cart before proceeding to checkout
+              </p>
+              <Button onClick={() => navigate("/marketplace/b2c")}>
+                Continue Shopping
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 pb-24">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Link to="/marketplace/cart">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
+          <Button variant="outline" size="icon" onClick={() => navigate("/marketplace/cart")}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <h1 className="text-2xl font-bold">Checkout</h1>
         </div>
 
@@ -89,27 +162,37 @@ const Checkout = () => {
             <Card className="shadow-medium border-0">
               <CardContent className="p-6">
                 <div className="flex justify-between">
-                  {[1, 2, 3].map((step) => (
-                    <div key={step} className="flex flex-col items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        activeStep === step 
-                          ? "bg-primary text-primary-foreground" 
-                          : activeStep > step 
-                            ? "bg-success text-success-foreground" 
-                            : "bg-muted text-muted-foreground"
-                      }`}>
-                        {step}
-                      </div>
-                      <span className="text-sm mt-2">
-                        {step === 1 ? "Shipping" : step === 2 ? "Payment" : "Review"}
-                      </span>
+                  <div className="text-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 ${
+                      activeStep >= 1 ? "bg-primary text-primary-foreground" : "bg-muted"
+                    }`}>
+                      1
                     </div>
-                  ))}
+                    <span className="text-sm">Shipping</span>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 ${
+                      activeStep >= 2 ? "bg-primary text-primary-foreground" : "bg-muted"
+                    }`}>
+                      2
+                    </div>
+                    <span className="text-sm">Payment</span>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 ${
+                      activeStep >= 3 ? "bg-primary text-primary-foreground" : "bg-muted"
+                    }`}>
+                      3
+                    </div>
+                    <span className="text-sm">Review</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Shipping Information */}
+            {/* Step 1: Shipping Information */}
             {activeStep === 1 && (
               <Card className="shadow-medium border-0">
                 <CardHeader>
@@ -117,18 +200,20 @@ const Checkout = () => {
                     <MapPin className="w-5 h-5" />
                     Shipping Information
                   </CardTitle>
-                  <CardDescription>Enter your shipping details</CardDescription>
+                  <CardDescription>
+                    Please enter your shipping details
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input 
-                          id="name" 
-                          name="name" 
-                          placeholder="Enter your full name" 
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          id="name"
+                          name="name"
+                          placeholder="Enter your full name"
                           className="pl-10"
                           value={shippingInfo.name}
                           onChange={handleInputChange}
@@ -139,12 +224,12 @@ const Checkout = () => {
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input 
-                          id="email" 
-                          name="email" 
-                          type="email" 
-                          placeholder="Enter your email" 
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          placeholder="Enter your email"
                           className="pl-10"
                           value={shippingInfo.email}
                           onChange={handleInputChange}
@@ -155,11 +240,12 @@ const Checkout = () => {
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone Number</Label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input 
-                          id="phone" 
-                          name="phone" 
-                          placeholder="Enter your phone number" 
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          placeholder="Enter your phone number"
                           className="pl-10"
                           value={shippingInfo.phone}
                           onChange={handleInputChange}
@@ -169,10 +255,10 @@ const Checkout = () => {
                     
                     <div className="space-y-2">
                       <Label htmlFor="pincode">Pincode</Label>
-                      <Input 
-                        id="pincode" 
-                        name="pincode" 
-                        placeholder="Enter pincode" 
+                      <Input
+                        id="pincode"
+                        name="pincode"
+                        placeholder="Enter pincode"
                         value={shippingInfo.pincode}
                         onChange={handleInputChange}
                       />
@@ -181,10 +267,10 @@ const Checkout = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="address">Address</Label>
-                    <Textarea 
-                      id="address" 
-                      name="address" 
-                      placeholder="Enter your complete address" 
+                    <Textarea
+                      id="address"
+                      name="address"
+                      placeholder="Enter your complete address"
                       rows={3}
                       value={shippingInfo.address}
                       onChange={handleInputChange}
@@ -194,10 +280,10 @@ const Checkout = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="city">City</Label>
-                      <Input 
-                        id="city" 
-                        name="city" 
-                        placeholder="Enter city" 
+                      <Input
+                        id="city"
+                        name="city"
+                        placeholder="Enter city"
                         value={shippingInfo.city}
                         onChange={handleInputChange}
                       />
@@ -205,10 +291,10 @@ const Checkout = () => {
                     
                     <div className="space-y-2">
                       <Label htmlFor="state">State</Label>
-                      <Input 
-                        id="state" 
-                        name="state" 
-                        placeholder="Enter state" 
+                      <Input
+                        id="state"
+                        name="state"
+                        placeholder="Enter state"
                         value={shippingInfo.state}
                         onChange={handleInputChange}
                       />
@@ -217,27 +303,23 @@ const Checkout = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="landmark">Landmark (Optional)</Label>
-                    <Input 
-                      id="landmark" 
-                      name="landmark" 
-                      placeholder="Enter landmark for easy delivery" 
+                    <Input
+                      id="landmark"
+                      name="landmark"
+                      placeholder="Enter nearby landmark"
                       value={shippingInfo.landmark}
                       onChange={handleInputChange}
                     />
                   </div>
                   
-                  <Button 
-                    className="w-full mt-4" 
-                    onClick={() => setActiveStep(2)}
-                    disabled={!shippingInfo.name || !shippingInfo.email || !shippingInfo.phone || !shippingInfo.address || !shippingInfo.city || !shippingInfo.state || !shippingInfo.pincode}
-                  >
+                  <Button className="w-full mt-4" onClick={() => setActiveStep(2)}>
                     Continue to Payment
                   </Button>
                 </CardContent>
               </Card>
             )}
 
-            {/* Payment Method */}
+            {/* Step 2: Payment Method */}
             {activeStep === 2 && (
               <Card className="shadow-medium border-0">
                 <CardHeader>
@@ -245,135 +327,114 @@ const Checkout = () => {
                     <CreditCard className="w-5 h-5" />
                     Payment Method
                   </CardTitle>
-                  <CardDescription>Select your preferred payment method</CardDescription>
+                  <CardDescription>
+                    Select your preferred payment method
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div 
-                      className={`p-4 border-2 rounded-lg cursor-pointer ${
-                        paymentMethod === "card" ? "border-primary" : "border-muted"
-                      }`}
+                    <Card 
+                      className={`border-2 cursor-pointer ${paymentMethod === "card" ? "border-primary" : ""}`}
                       onClick={() => setPaymentMethod("card")}
                     >
-                      <div className="flex items-center gap-3">
+                      <CardContent className="p-4 flex items-center gap-3">
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                          paymentMethod === "card" ? "border-primary bg-primary" : "border-muted"
+                          paymentMethod === "card" ? "border-primary bg-primary" : "border-gray-300"
                         }`}>
                           {paymentMethod === "card" && (
                             <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
                           )}
                         </div>
-                        <span className="font-medium">Credit/Debit Card</span>
-                      </div>
-                    </div>
+                        <div>
+                          <p className="font-medium">Credit/Debit Card</p>
+                          <p className="text-sm text-muted-foreground">Pay with your card</p>
+                        </div>
+                      </CardContent>
+                    </Card>
                     
-                    <div 
-                      className={`p-4 border-2 rounded-lg cursor-pointer ${
-                        paymentMethod === "upi" ? "border-primary" : "border-muted"
-                      }`}
+                    <Card 
+                      className={`border-2 cursor-pointer ${paymentMethod === "upi" ? "border-primary" : ""}`}
                       onClick={() => setPaymentMethod("upi")}
                     >
-                      <div className="flex items-center gap-3">
+                      <CardContent className="p-4 flex items-center gap-3">
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                          paymentMethod === "upi" ? "border-primary bg-primary" : "border-muted"
+                          paymentMethod === "upi" ? "border-primary bg-primary" : "border-gray-300"
                         }`}>
                           {paymentMethod === "upi" && (
                             <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
                           )}
                         </div>
-                        <span className="font-medium">UPI</span>
-                      </div>
-                    </div>
+                        <div>
+                          <p className="font-medium">UPI</p>
+                          <p className="text-sm text-muted-foreground">Pay with UPI apps</p>
+                        </div>
+                      </CardContent>
+                    </Card>
                     
-                    <div 
-                      className={`p-4 border-2 rounded-lg cursor-pointer ${
-                        paymentMethod === "netbanking" ? "border-primary" : "border-muted"
-                      }`}
+                    <Card 
+                      className={`border-2 cursor-pointer ${paymentMethod === "netbanking" ? "border-primary" : ""}`}
                       onClick={() => setPaymentMethod("netbanking")}
                     >
-                      <div className="flex items-center gap-3">
+                      <CardContent className="p-4 flex items-center gap-3">
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                          paymentMethod === "netbanking" ? "border-primary bg-primary" : "border-muted"
+                          paymentMethod === "netbanking" ? "border-primary bg-primary" : "border-gray-300"
                         }`}>
                           {paymentMethod === "netbanking" && (
                             <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
                           )}
                         </div>
-                        <span className="font-medium">Net Banking</span>
-                      </div>
-                    </div>
+                        <div>
+                          <p className="font-medium">Net Banking</p>
+                          <p className="text-sm text-muted-foreground">Pay directly from your bank</p>
+                        </div>
+                      </CardContent>
+                    </Card>
                     
-                    <div 
-                      className={`p-4 border-2 rounded-lg cursor-pointer ${
-                        paymentMethod === "cod" ? "border-primary" : "border-muted"
-                      }`}
-                      onClick={() => setPaymentMethod("cod")}
+                    <Card 
+                      className={`border-2 cursor-pointer ${paymentMethod === "instamojo" ? "border-primary" : ""}`}
+                      onClick={() => setPaymentMethod("instamojo")}
                     >
-                      <div className="flex items-center gap-3">
+                      <CardContent className="p-4 flex items-center gap-3">
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                          paymentMethod === "cod" ? "border-primary bg-primary" : "border-muted"
+                          paymentMethod === "instamojo" ? "border-primary bg-primary" : "border-gray-300"
                         }`}>
-                          {paymentMethod === "cod" && (
+                          {paymentMethod === "instamojo" && (
                             <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
                           )}
                         </div>
-                        <span className="font-medium">Cash on Delivery</span>
-                      </div>
-                    </div>
+                        <div>
+                          <p className="font-medium">Instamojo</p>
+                          <p className="text-sm text-muted-foreground">Secure online payment</p>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                  
-                  {paymentMethod === "card" && (
-                    <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                      <div className="space-y-2">
-                        <Label htmlFor="cardNumber">Card Number</Label>
-                        <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="expiry">Expiry Date</Label>
-                          <Input id="expiry" placeholder="MM/YY" />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="cvv">CVV</Label>
-                          <Input id="cvv" placeholder="123" />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="cardName">Name on Card</Label>
-                        <Input id="cardName" placeholder="Enter name as on card" />
-                      </div>
-                    </div>
-                  )}
                   
                   <div className="flex gap-3">
                     <Button variant="outline" onClick={() => setActiveStep(1)}>
                       Back
                     </Button>
                     <Button className="flex-1" onClick={() => setActiveStep(3)}>
-                      Review Order
+                      Continue to Review
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Order Review */}
+            {/* Step 3: Order Review */}
             {activeStep === 3 && (
               <Card className="shadow-medium border-0">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Truck className="w-5 h-5" />
-                    Review Your Order
-                  </CardTitle>
-                  <CardDescription>Review and confirm your order details</CardDescription>
+                  <CardTitle>Review Your Order</CardTitle>
+                  <CardDescription>
+                    Please review your order details before placing
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Shipping Address */}
+                  {/* Shipping Information */}
                   <div>
-                    <h3 className="font-semibold mb-2">Shipping Address</h3>
+                    <h3 className="font-semibold mb-2">Shipping Information</h3>
                     <div className="p-4 bg-muted/50 rounded-lg">
                       <p className="font-medium">{shippingInfo.name}</p>
                       <p className="text-sm text-muted-foreground">{shippingInfo.address}</p>
@@ -391,7 +452,7 @@ const Checkout = () => {
                         {paymentMethod === "card" && "Credit/Debit Card"}
                         {paymentMethod === "upi" && "UPI"}
                         {paymentMethod === "netbanking" && "Net Banking"}
-                        {paymentMethod === "cod" && "Cash on Delivery"}
+                        {paymentMethod === "instamojo" && "Instamojo"}
                       </p>
                     </div>
                   </div>
@@ -400,7 +461,7 @@ const Checkout = () => {
                   <div>
                     <h3 className="font-semibold mb-2">Order Items</h3>
                     <div className="space-y-3">
-                      {cartItems.map((item) => (
+                      {items.map((item) => (
                         <div key={item.id} className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
                           <img 
                             src={item.image} 
@@ -444,7 +505,7 @@ const Checkout = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  {cartItems.map((item) => (
+                  {items.map((item) => (
                     <div key={item.id} className="flex justify-between">
                       <div>
                         <p className="text-sm">{item.name} x {item.quantity}</p>
@@ -471,7 +532,7 @@ const Checkout = () => {
                     <span>Shipping</span>
                     <div className="flex items-baseline gap-1">
                       <IndianRupee className="w-4 h-4 text-muted-foreground" />
-                      <span>{shipping}</span>
+                      <span>{shipping === 0 ? "FREE" : shipping}</span>
                     </div>
                   </div>
                   

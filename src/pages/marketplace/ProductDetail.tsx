@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
+import ProductImageGallery from "@/components/ProductImageGallery";
+import SellerProfileCard from "@/components/SellerProfileCard";
 import { 
   ArrowLeft, 
   ShoppingCart,
@@ -19,50 +22,48 @@ import {
   MessageCircle
 } from "lucide-react";
 
-// Mock product data
-const product = {
-  id: "P001",
-  name: "Organic Cotton Textiles",
-  seller: "Green Textiles Co.",
-  sellerId: "ST001",
-  price: 1200,
-  originalPrice: 1500,
-  discount: 20,
-  minOrder: 50,
-  category: "Textiles",
-  rating: 4.8,
-  reviews: 24,
-  image: "/placeholder.svg",
-  location: "Coimbatore, Tamil Nadu",
-  description: "Premium organic cotton textiles for sustainable fashion brands. Our textiles are made from 100% organic cotton, ethically sourced and produced with eco-friendly processes. Perfect for fashion brands looking to offer sustainable clothing options.",
-  tags: ["Organic", "Sustainable", "Wholesale", "Eco-friendly"],
-  inStock: true,
-  specifications: [
-    { name: "Material", value: "100% Organic Cotton" },
-    { name: "Thread Count", value: "200 TC" },
-    { name: "Width", value: "54 inches" },
-    { name: "Weight", value: "150 GSM" },
-    { name: "Color", value: "Natural White" },
-    { name: "Certification", value: "GOTS Certified" }
-  ],
-  sellerInfo: {
-    name: "Green Textiles Co.",
-    rating: 4.7,
-    reviews: 128,
-    since: "2018",
-    products: 42,
-    responseTime: "2 hrs"
-  }
-};
+import { sampleB2BProducts } from "@/data/products";
+
+// Use the first sample product
+const product = sampleB2BProducts[0];
 
 const ProductDetail = () => {
   const { id } = useParams();
+  const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [favorited, setFavorited] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
 
   const increaseQuantity = () => setQuantity(q => q + 1);
   const decreaseQuantity = () => setQuantity(q => q > 1 ? q - 1 : 1);
+
+  const handleAddToCart = () => {
+    // Get the appropriate price based on pricing model
+    const getCurrentPrice = () => {
+      if (product.pricing.type === 'fixed') {
+        return product.pricing.basePrice || 0;
+      } else if (product.pricing.type === 'bulk' && product.pricing.bulkPrices) {
+        // Find the price based on quantity
+        const applicablePrice = product.pricing.bulkPrices
+          .filter(bp => bp.minQty <= quantity)
+          .sort((a, b) => b.minQty - a.minQty)[0];
+        return applicablePrice ? applicablePrice.price : product.pricing.bulkPrices[0]?.price || 0;
+      }
+      return 0;
+    };
+    
+    addItem({
+      productId: product.id,
+      name: product.name,
+      seller: product.seller.name,
+      price: getCurrentPrice(),
+      quantity: quantity,
+      image: product.images[0]?.url || "/placeholder.svg",
+      inStock: product.inStock
+    });
+    
+    alert(`${product.name} added to cart!`);
+  };
 
   return (
     <div className="min-h-screen p-4 pb-24">
@@ -84,27 +85,13 @@ const ProductDetail = () => {
         {/* Product Detail */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Product Images */}
-          <div className="space-y-4">
-            <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-              <img 
-                src={product.image} 
-                alt={product.name} 
-                className="w-full h-full object-cover rounded-lg"
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((item) => (
-                <div key={item} className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                  <img 
-                    src={product.image} 
-                    alt={`${product.name} ${item}`} 
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProductImageGallery 
+            images={product.images}
+            productName={product.name}
+            onFavorite={() => setFavorited(!favorited)}
+            favorited={favorited}
+            onShare={() => console.log("Share product")}
+          />
 
           {/* Product Info */}
           <div className="space-y-6">
@@ -112,7 +99,7 @@ const ProductDetail = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <h1 className="text-2xl font-bold">{product.name}</h1>
-                  <p className="text-muted-foreground">{product.seller}</p>
+                  <p className="text-muted-foreground">{product.seller.name}</p>
                 </div>
                 <Button
                   variant="ghost"
@@ -129,7 +116,7 @@ const ProductDetail = () => {
                 <div className="flex items-center gap-1">
                   <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                   <span className="font-medium">{product.rating}</span>
-                  <span className="text-muted-foreground">({product.reviews} reviews)</span>
+                  <span className="text-muted-foreground">({product.reviewCount} reviews)</span>
                 </div>
                 <Badge variant="secondary">{product.category}</Badge>
               </div>
@@ -140,21 +127,25 @@ const ProductDetail = () => {
               <div className="flex items-baseline gap-2">
                 <div className="flex items-baseline gap-1">
                   <IndianRupee className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-3xl font-bold">{product.price}</span>
+                  <span className="text-3xl font-bold">
+                    {product.pricing.type === 'fixed' 
+                      ? product.pricing.basePrice 
+                      : product.pricing.bulkPrices?.[0]?.price || 0}
+                  </span>
                   <span className="text-muted-foreground">/ unit</span>
                 </div>
-                {product.originalPrice > product.price && (
+                {product.pricing.originalPrice && product.pricing.originalPrice > (product.pricing.type === 'fixed' ? product.pricing.basePrice : product.pricing.bulkPrices?.[0]?.price || 0) && (
                   <>
                     <IndianRupee className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-lg text-muted-foreground line-through">{product.originalPrice}</span>
+                    <span className="text-lg text-muted-foreground line-through">{product.pricing.originalPrice}</span>
                     <Badge className="ml-2 bg-red-500">
-                      {product.discount}% OFF
+                      {Math.round(((product.pricing.originalPrice - (product.pricing.type === 'fixed' ? product.pricing.basePrice : product.pricing.bulkPrices?.[0]?.price || 0)) / product.pricing.originalPrice) * 100)}% OFF
                     </Badge>
                   </>
                 )}
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                Minimum order quantity: {product.minOrder} units
+                Minimum order quantity: {product.minOrderQuantity} units
               </p>
             </div>
 
@@ -191,7 +182,7 @@ const ProductDetail = () => {
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button className="flex-1">
+              <Button className="flex-1" onClick={handleAddToCart}>
                 <ShoppingCart className="w-5 h-5 mr-2" />
                 Add to Cart
               </Button>
@@ -205,43 +196,11 @@ const ProductDetail = () => {
             </div>
 
             {/* Seller Info */}
-            <Card className="shadow-medium border-0">
-              <CardHeader>
-                <CardTitle className="text-lg">Sold by</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 mb-4">
-                  <Avatar className="w-16 h-16">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                      {product.seller.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold">{product.seller}</h3>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                      <span className="text-sm">{product.sellerInfo.rating} ({product.sellerInfo.reviews} reviews)</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Member since {product.sellerInfo.since}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Products</p>
-                    <p className="font-medium">{product.sellerInfo.products}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Response Time</p>
-                    <p className="font-medium">{product.sellerInfo.responseTime}</p>
-                  </div>
-                </div>
-                
-                <Button variant="outline" className="w-full mt-4">
-                  View Seller Profile
-                </Button>
-              </CardContent>
-            </Card>
+            <SellerProfileCard 
+              seller={product.seller}
+              onContact={() => console.log("Contact seller")}
+              onViewProfile={() => console.log("View seller profile")}
+            />
           </div>
         </div>
 
@@ -266,7 +225,7 @@ const ProductDetail = () => {
                 className={`px-6 py-4 font-medium ${activeTab === "reviews" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}
                 onClick={() => setActiveTab("reviews")}
               >
-                Reviews ({product.reviews})
+                Reviews ({product.reviewCount})
               </button>
             </div>
 
@@ -344,7 +303,7 @@ const ProductDetail = () => {
                             />
                           ))}
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">{product.reviews} reviews</p>
+                        <p className="text-sm text-muted-foreground mt-2">{product.reviewCount} reviews</p>
                       </div>
                       
                       <div className="flex-1">

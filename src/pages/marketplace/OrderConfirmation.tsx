@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useOrder } from "@/contexts/OrderContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,38 +15,38 @@ import {
 } from "lucide-react";
 
 const OrderConfirmation = () => {
-  const order = {
-    id: "ORD2024001",
-    date: "2024-01-15",
-    status: "confirmed",
-    total: 3500,
-    items: [
-      {
-        id: "ITEM001",
-        name: "Organic Cotton Textiles",
-        seller: "Green Textiles Co.",
-        price: 1200,
-        quantity: 2,
-        image: "/placeholder.svg"
-      },
-      {
-        id: "ITEM002",
-        name: "Handcrafted Pottery",
-        seller: "Artisan Pottery Studio",
-        price: 800,
-        quantity: 1,
-        image: "/placeholder.svg"
-      }
-    ],
-    shipping: {
-      name: "John Doe",
-      address: "123 Main Street, Block A",
-      city: "Chennai",
-      state: "Tamil Nadu",
-      pincode: "600001",
-      phone: "+91 98765 43210"
+  const { orders } = useOrder();
+  const [latestOrder, setLatestOrder] = useState<any>(null);
+
+  useEffect(() => {
+    // Get the latest order
+    if (orders.length > 0) {
+      const latest = orders[orders.length - 1];
+      setLatestOrder(latest);
     }
-  };
+  }, [orders]);
+
+  if (!latestOrder) {
+    return (
+      <div className="min-h-screen p-4 pb-24">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card className="shadow-medium border-0">
+            <CardContent className="p-12 text-center">
+              <h3 className="text-xl font-medium mb-2">No order found</h3>
+              <p className="text-muted-foreground mb-6">
+                We couldn't find your order information
+              </p>
+              <Button asChild>
+                <Link to="/marketplace/b2c">
+                  Continue Shopping
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 pb-24">
@@ -63,11 +65,11 @@ const OrderConfirmation = () => {
           <CardHeader>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <CardTitle>Order #{order.id}</CardTitle>
-                <CardDescription>Placed on {order.date}</CardDescription>
+                <CardTitle>Order #{latestOrder.id}</CardTitle>
+                <CardDescription>Placed on {latestOrder.date}</CardDescription>
               </div>
               <Badge variant="default" className="w-fit">
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                Processing
               </Badge>
             </div>
           </CardHeader>
@@ -77,7 +79,7 @@ const OrderConfirmation = () => {
               <div>
                 <h3 className="font-semibold mb-3">Order Items</h3>
                 <div className="space-y-4">
-                  {order.items.map((item) => (
+                  {latestOrder.items.map((item: any) => (
                     <div key={item.id} className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
                       <img 
                         src={item.image} 
@@ -107,10 +109,13 @@ const OrderConfirmation = () => {
                   <div className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <p className="font-medium">{order.shipping.name}</p>
-                      <p className="text-sm text-muted-foreground">{order.shipping.address}</p>
-                      <p className="text-sm text-muted-foreground">{order.shipping.city}, {order.shipping.state} - {order.shipping.pincode}</p>
-                      <p className="text-sm text-muted-foreground">Phone: {order.shipping.phone}</p>
+                      <p className="font-medium">{latestOrder.shipping.name}</p>
+                      <p className="text-sm text-muted-foreground">{latestOrder.shipping.address}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {latestOrder.shipping.city}, {latestOrder.shipping.state} - {latestOrder.shipping.pincode}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Phone: {latestOrder.shipping.phone}</p>
+                      <p className="text-sm text-muted-foreground">Email: {latestOrder.shipping.email}</p>
                     </div>
                   </div>
                 </div>
@@ -122,7 +127,7 @@ const OrderConfirmation = () => {
                   <span>Total Amount</span>
                   <div className="flex items-baseline gap-1">
                     <IndianRupee className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-2xl">{order.total}</span>
+                    <span className="text-2xl">{latestOrder.total}</span>
                   </div>
                 </div>
               </div>

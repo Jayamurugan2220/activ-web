@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useCart } from "@/contexts/CartContext";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,57 +16,12 @@ import {
   Shield
 } from "lucide-react";
 
-// Mock cart data
-const cartItems = [
-  {
-    id: "CART001",
-    productId: "P001",
-    name: "Organic Cotton Textiles",
-    seller: "Green Textiles Co.",
-    price: 1200,
-    quantity: 2,
-    image: "/placeholder.svg",
-    inStock: true
-  },
-  {
-    id: "CART002",
-    productId: "P002",
-    name: "Handcrafted Pottery",
-    seller: "Artisan Pottery Studio",
-    price: 800,
-    quantity: 1,
-    image: "/placeholder.svg",
-    inStock: true
-  },
-  {
-    id: "CART003",
-    productId: "P003",
-    name: "Spices Collection",
-    seller: "Heritage Spices Ltd",
-    price: 1500,
-    quantity: 3,
-    image: "/placeholder.svg",
-    inStock: false
-  }
-];
-
 const Cart = () => {
-  const [items, setItems] = useState(cartItems);
+  const { items, updateQuantity, removeItem, clearCart } = useCart();
   const [coupon, setCoupon] = useState("");
 
-  const updateQuantity = (id: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    setItems(items.map(item => 
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    ));
-  };
-
-  const removeItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
-  };
-
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = 100;
+  const shipping = subtotal > 500 ? 0 : 100; // Free shipping over ₹500
   const discount = 0;
   const total = subtotal + shipping - discount;
 
@@ -179,7 +135,7 @@ const Cart = () => {
                     Continue Shopping
                   </Button>
                 </Link>
-                <Button variant="outline" onClick={() => setItems([])}>
+                <Button variant="outline" onClick={clearCart}>
                   Clear Cart
                 </Button>
               </div>
@@ -205,7 +161,7 @@ const Cart = () => {
                       <span>Shipping</span>
                       <div className="flex items-baseline gap-1">
                         <IndianRupee className="w-4 h-4 text-muted-foreground" />
-                        <span>{shipping}</span>
+                        <span>{shipping === 0 ? "FREE" : shipping}</span>
                       </div>
                     </div>
                     

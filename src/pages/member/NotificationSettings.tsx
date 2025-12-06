@@ -14,7 +14,8 @@ import {
   FileText,
   CreditCard,
   Calendar,
-  ShoppingCart
+  ShoppingCart,
+  MessageCircle
 } from "lucide-react";
 
 const NotificationSettings = () => {
@@ -32,7 +33,8 @@ const NotificationSettings = () => {
     events: true,
     documents: true,
     orders: true,
-    profile: true
+    profile: true,
+    inquiries: true // Add inquiries notification type
   });
 
   const togglePreference = (type: keyof typeof preferences) => {
@@ -61,6 +63,7 @@ const NotificationSettings = () => {
     { id: "events", name: "Event Reminders", icon: Calendar, description: "Upcoming events and workshops" },
     { id: "documents", name: "Document Updates", icon: FileText, description: "Document submissions and reviews" },
     { id: "orders", name: "Order Status", icon: ShoppingCart, description: "Order confirmations and shipping updates" },
+    { id: "inquiries", name: "Inquiry Notifications", icon: MessageCircle, description: "New product inquiries and responses" },
     { id: "profile", name: "Profile Changes", icon: User, description: "Profile updates and security alerts" }
   ];
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, ArrowRight, Upload, Building, MapPin, User } from "lucide-react";
+import { UserPlus, ArrowRight, Upload, Building, MapPin, User, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { INDIA_DISTRICTS } from "@/data/india-districts";
 
@@ -176,7 +176,14 @@ const MemberRegister = () => {
               <div className="mx-auto lg:mx-0 w-16 h-16 lg:w-20 lg:h-20 bg-primary rounded-full flex items-center justify-center mb-4 lg:mb-6">
                 <UserPlus className="w-8 h-8 lg:w-10 lg:h-10 text-primary-foreground" />
               </div>
-              <h2 className="text-2xl lg:text-4xl font-bold mb-1">Member Registration</h2>
+              <div className="flex items-center gap-4 mb-2">
+                <Link to="/member/login">
+                  <Button variant="outline" size="icon">
+                    <ArrowLeft className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <h2 className="text-2xl lg:text-4xl font-bold">Member Registration</h2>
+              </div>
               <p className="text-muted-foreground mb-3 text-sm lg:text-base">Step {step} of 3</p>
 
               <div className="w-full max-w-md mx-auto lg:mx-0 bg-white/30 rounded-full h-2 mb-3">

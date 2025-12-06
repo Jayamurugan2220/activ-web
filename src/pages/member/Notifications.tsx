@@ -13,7 +13,10 @@ import {
   Smartphone,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  MessageCircle,
+  CreditCard,
+  ShoppingCart
 } from "lucide-react";
 
 const Notifications = () => {
@@ -40,6 +43,15 @@ const Notifications = () => {
     },
     {
       id: 3,
+      type: "inquiry",
+      title: "New Product Inquiry",
+      message: "You have received a new inquiry for Organic Cotton Textiles from Global Traders",
+      time: "2 days ago",
+      unread: true,
+      channel: "app"
+    },
+    {
+      id: 4,
       type: "profile",
       title: "Profile Update",
       message: "Please complete your profile to unlock all features",
@@ -48,7 +60,7 @@ const Notifications = () => {
       channel: "sms"
     },
     {
-      id: 4,
+      id: 5,
       type: "payment",
       title: "Payment Successful",
       message: "Your membership renewal payment of ₹1,500 was successful",
@@ -57,7 +69,7 @@ const Notifications = () => {
       channel: "whatsapp"
     },
     {
-      id: 5,
+      id: 6,
       type: "approval",
       title: "Application Status",
       message: "Your membership application has been forwarded to District Admin",
@@ -75,6 +87,7 @@ const Notifications = () => {
     switch (type) {
       case "event": return <Calendar className="h-5 w-5 text-blue-500" />;
       case "document": return <FileText className="h-5 w-5 text-green-500" />;
+      case "inquiry": return <MessageCircle className="h-5 w-5 text-indigo-500" />;
       case "profile": return <User className="h-5 w-5 text-purple-500" />;
       case "payment": return <CheckCircle className="h-5 w-5 text-success" />;
       case "approval": return <Clock className="h-5 w-5 text-amber-500" />;
@@ -109,6 +122,17 @@ const Notifications = () => {
     // In a real app, this would update all notifications
     console.log("Marking all notifications as read");
   };
+
+  const notificationTypeConfig = [
+    { id: "membership", name: "Membership Updates", icon: User, description: "Renewals, expirations, and membership changes" },
+    { id: "payments", name: "Payment Notifications", icon: CreditCard, description: "Payment confirmations and receipts" },
+    { id: "approvals", name: "Approval Status", icon: FileText, description: "Application and document approvals" },
+    { id: "events", name: "Event Reminders", icon: Calendar, description: "Upcoming events and workshops" },
+    { id: "documents", name: "Document Updates", icon: FileText, description: "Document submissions and reviews" },
+    { id: "orders", name: "Order Status", icon: ShoppingCart, description: "Order confirmations and shipping updates" },
+    { id: "inquiries", name: "Inquiry Notifications", icon: MessageCircle, description: "New product inquiries and responses" },
+    { id: "profile", name: "Profile Changes", icon: User, description: "Profile updates and security alerts" }
+  ];
 
   return (
     <div className="min-h-screen bg-background p-4">

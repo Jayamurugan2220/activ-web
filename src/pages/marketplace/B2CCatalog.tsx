@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -48,42 +49,42 @@ const products = [
     reviews: 87,
     image: "/placeholder.svg",
     location: "Kochi, Kerala",
-    description: "100% pure organic turmeric powder, 500g pack",
-    tags: ["Organic", "Natural", "Spices"],
+    description: "100% pure organic turmeric powder with high curcumin content",
+    tags: ["Organic", "Spices", "Healthy"],
     inStock: true
   },
   {
     id: "C003",
-    name: "Handcrafted Wooden Bowl Set",
-    seller: "Artisan Pottery Studio",
-    sellerId: "ST002",
-    price: 800,
-    originalPrice: 1000,
+    name: "Handcrafted Wooden Jewelry Box",
+    seller: "Artisan Crafts",
+    sellerId: "ST006",
+    price: 1200,
+    originalPrice: 1500,
     discount: 20,
-    category: "Home Decor",
+    category: "Jewelry",
     rating: 4.6,
     reviews: 56,
     image: "/placeholder.svg",
     location: "Jaipur, Rajasthan",
-    description: "Set of 4 handcrafted wooden bowls with natural finish",
-    tags: ["Handmade", "Wooden", "Eco-friendly"],
+    description: "Beautiful wooden jewelry box with intricate hand-carved designs",
+    tags: ["Handcrafted", "Wooden", "Gift"],
     inStock: true
   },
   {
     id: "C004",
-    name: "Ayurvedic Face Pack",
-    seller: "Natural Wellness Co",
-    sellerId: "ST006",
-    price: 250,
-    originalPrice: 300,
-    discount: 17,
+    name: "Organic Face Cream",
+    seller: "Natural Beauty Co",
+    sellerId: "ST007",
+    price: 450,
+    originalPrice: 600,
+    discount: 25,
     category: "Beauty",
     rating: 4.8,
-    reviews: 92,
+    reviews: 78,
     image: "/placeholder.svg",
     location: "Bangalore, Karnataka",
-    description: "Natural Ayurvedic face pack for glowing skin, 100g",
-    tags: ["Natural", "Ayurvedic", "Organic"],
+    description: "Nourishing face cream made with organic ingredients",
+    tags: ["Organic", "Natural", "Skincare"],
     inStock: true
   },
   {
@@ -134,6 +135,7 @@ const categories = [
 ];
 
 const B2CCatalog = () => {
+  const { addItem } = useCart();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [sortBy, setSortBy] = useState("rating");
@@ -163,6 +165,20 @@ const B2CCatalog = () => {
     }
   };
 
+  const handleAddToCart = (product: typeof products[0]) => {
+    addItem({
+      productId: product.id,
+      name: product.name,
+      seller: product.seller,
+      price: product.price,
+      quantity: 1,
+      image: product.image,
+      inStock: product.inStock
+    });
+    
+    alert(`${product.name} added to cart!`);
+  };
+
   return (
     <div className="min-h-screen p-4 pb-24">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -178,11 +194,11 @@ const B2CCatalog = () => {
 
         {/* Search and Filters */}
         <Card className="shadow-medium border-0">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
               {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search products..."
                   className="pl-10"
@@ -193,7 +209,7 @@ const B2CCatalog = () => {
               
               {/* Category Filter */}
               <select
-                className="border border-input bg-background rounded-md px-3 py-2 text-sm"
+                className="border rounded-md px-3 py-2 text-sm"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
               >
@@ -204,142 +220,62 @@ const B2CCatalog = () => {
               
               {/* Sort */}
               <select
-                className="border border-input bg-background rounded-md px-3 py-2 text-sm"
+                className="border rounded-md px-3 py-2 text-sm"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
                 <option value="rating">Sort by Rating</option>
                 <option value="price-low">Price: Low to High</option>
                 <option value="price-high">Price: High to Low</option>
-                <option value="discount">Highest Discount</option>
               </select>
             </div>
           </CardContent>
         </Card>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="shadow-medium border-0">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Products</p>
-                  <p className="text-2xl font-bold">{products.length}</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <ShoppingCart className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-medium border-0">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">In Stock</p>
-                  <p className="text-2xl font-bold">{products.filter(p => p.inStock).length}</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
-                  <Filter className="w-6 h-6 text-success" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-medium border-0">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Categories</p>
-                  <p className="text-2xl font-bold">{categories.length - 1}</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                  <Filter className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-medium border-0">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Avg. Rating</p>
-                  <p className="text-2xl font-bold">4.7</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <Star className="w-6 h-6 text-yellow-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Product Grid */}
+        {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
             <Card key={product.id} className="shadow-medium border-0 hover:shadow-lg transition-shadow">
-              <CardContent className="p-0">
-                {/* Product Image */}
-                <div className="relative aspect-square bg-muted rounded-t-lg flex items-center justify-center">
+              <CardContent className="p-4">
+                <div className="relative">
                   <img 
                     src={product.image} 
                     alt={product.name} 
-                    className="w-full h-full object-cover rounded-t-lg"
+                    className="w-full aspect-square object-cover rounded-lg"
                   />
-                  
-                  {/* Favorite Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full"
-                    onClick={() => toggleFavorite(product.id)}
-                  >
-                    <Heart 
-                      className={`w-5 h-5 ${favorites.includes(product.id) ? 'text-red-500 fill-red-500' : 'text-gray-500'}`} 
-                    />
-                  </Button>
-                  
-                  {/* Discount Badge */}
                   {product.discount > 0 && (
-                    <Badge className="absolute top-2 left-2 bg-red-500">
+                    <Badge className="absolute top-2 right-2 bg-red-500">
                       {product.discount}% OFF
                     </Badge>
                   )}
-                  
-                  {/* Out of Stock Badge */}
-                  {!product.inStock && (
-                    <Badge variant="destructive" className="absolute bottom-2 left-2">
-                      Out of Stock
-                    </Badge>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 left-2"
+                    onClick={() => toggleFavorite(product.id)}
+                  >
+                    <Heart 
+                      className={`w-5 h-5 ${favorites.includes(product.id) ? 'text-red-500 fill-red-500' : 'text-white drop-shadow'}`} 
+                    />
+                  </Button>
                 </div>
                 
-                {/* Product Info */}
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold">{product.name}</h3>
-                    <Badge variant="secondary">{product.category}</Badge>
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <h3 className="font-semibold line-clamp-1">{product.name}</h3>
+                    <p className="text-sm text-muted-foreground">{product.seller}</p>
                   </div>
                   
-                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
-                  
-                  {/* Seller Info */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <Avatar className="w-6 h-6">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                        {product.seller.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-xs text-muted-foreground">{product.seller}</span>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    <span className="text-sm">{product.rating}</span>
+                    <span className="text-sm text-muted-foreground">({product.reviews})</span>
                   </div>
                   
-                  {/* Pricing */}
-                  <div className="flex items-baseline gap-2 mb-3">
+                  <div className="flex items-baseline gap-2">
                     <div className="flex items-baseline gap-1">
                       <IndianRupee className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-lg font-bold">{product.price}</span>
+                      <span className="font-bold">{product.price}</span>
                     </div>
                     {product.originalPrice > product.price && (
                       <>
@@ -349,17 +285,9 @@ const B2CCatalog = () => {
                     )}
                   </div>
                   
-                  {/* Rating */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                      <span className="text-sm font-medium">{product.rating}</span>
-                      <span className="text-xs text-muted-foreground">({product.reviews})</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">{product.location.split(',')[0]}</span>
-                    </div>
+                  <div className="flex items-center gap-1 text-xs">
+                    <MapPin className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{product.location.split(',')[0]}</span>
                   </div>
                   
                   {/* Actions */}
@@ -368,6 +296,7 @@ const B2CCatalog = () => {
                       variant="outline" 
                       className="flex-1"
                       disabled={!product.inStock}
+                      onClick={() => toggleFavorite(product.id)}
                     >
                       <Heart className="w-4 h-4 mr-2" />
                       Wishlist
@@ -375,6 +304,7 @@ const B2CCatalog = () => {
                     <Button 
                       className="flex-1"
                       disabled={!product.inStock}
+                      onClick={() => handleAddToCart(product)}
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
                       Add to Cart

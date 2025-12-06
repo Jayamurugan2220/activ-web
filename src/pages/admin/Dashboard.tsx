@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   FileText, Users, CheckCircle, XCircle, 
   Clock, Home, List, User,
-  Menu, TrendingUp, MapPin, UserCheck, AlertTriangle
+  Menu, TrendingUp, MapPin, UserCheck, AlertTriangle, Package
 } from "lucide-react";
 import { useState } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -62,6 +62,22 @@ const AdminDashboard = () => {
   const [adminRole, setAdminRole] = useState<"block" | "district" | "state" | "super">("block");
   
   const config = ROLE_CONFIGS[adminRole];
+  
+  // Update stats based on role
+  const getStatsForRole = (role: string) => {
+    const baseStats = ROLE_CONFIGS[role].stats;
+    // Add inventory stats for all roles except block
+    if (role !== "block") {
+      return [
+        ...baseStats,
+        { label: "Low Stock Items", value: 24, icon: AlertTriangle, color: "amber" },
+        { label: "Total Inventory Value", value: "₹4.2M", icon: Package, color: "green" }
+      ];
+    }
+    return baseStats;
+  };
+  
+  const currentStats = getStatsForRole(adminRole);
   
   const recentApplications = [
     { id: "ACTIV2024001", name: "John Doe", status: "approved", date: "2024-01-15", district: "Chennai", business: "Doe Enterprises" },
@@ -168,7 +184,7 @@ const AdminDashboard = () => {
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {config.stats.map((stat, index) => {
+              {currentStats.map((stat, index) => {
                 const IconComponent = stat.icon;
                 const colorClasses = getColorClasses(stat.color);
                 
