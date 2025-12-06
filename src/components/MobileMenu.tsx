@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaHome, FaSearch, FaBell, FaUser, FaClipboardList, FaCertificate, FaQuestionCircle, FaCalendarAlt, FaSignOutAlt, FaTimes } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Props = {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export default function MobileMenu({ isOpen, onClose }: Props) {
   const location = useLocation();
   const [userName, setUserName] = useState("");
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
     // Get user name from localStorage
@@ -34,15 +36,12 @@ export default function MobileMenu({ isOpen, onClose }: Props) {
     { to: '/member/events', label: 'Upcoming Events', icon: <FaCalendarAlt /> },
   ];
 
-    const handleLogout = () => {
-        // clear session and user info
-        localStorage.removeItem("userName");
-        localStorage.removeItem("memberId");
-        localStorage.removeItem("userFirstName");
-        localStorage.removeItem("isLoggedIn");
-      navigate("/login");
-      onClose();
-    };
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (

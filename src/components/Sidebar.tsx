@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { FaHome, FaSearch, FaBell, FaUser, FaClipboardList, FaCertificate, FaQuestionCircle, FaCalendarAlt, FaSignOutAlt } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Props = {
   className?: string;
@@ -12,6 +13,7 @@ export default function Sidebar({ className = '' }: Props) {
   const location = useLocation();
   const [userName, setUserName] = useState("");
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
     // Get user name from localStorage
@@ -32,15 +34,11 @@ export default function Sidebar({ className = '' }: Props) {
     { to: '/member/events', label: 'Upcoming Events', icon: <FaCalendarAlt /> },
   ];
 
-    const handleLogout = () => {
-        // Clear session/presence keys used by the app
-        localStorage.removeItem("userName");
-        localStorage.removeItem("memberId");
-        localStorage.removeItem("userFirstName");
-        localStorage.removeItem("isLoggedIn");
-        // go to main login page
-        navigate("/login");
-    };
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <aside className={`bg-white h-full flex flex-col justify-between ${className}`}>
       <div className="p-2 md:p-4">

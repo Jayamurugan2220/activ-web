@@ -80,6 +80,35 @@ class NotificationService {
   }
 
   /**
+   * Send profile update notification to admins
+   * @param memberName - Name of the member who updated their profile
+   * @param memberId - Member ID
+   * @returns Promise with sending result
+   */
+  async sendProfileUpdateNotification(
+    memberName: string,
+    memberId: string
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'profile',
+      recipient: {
+        name: 'Admin Team',
+      },
+      subject: `Profile Updated - ${memberName}`,
+      message: `Dear Admin,
+      
+Member ${memberName} (ID: ${memberId}) has updated their profile information.
+
+No approval is required for this update.
+
+Best regards,
+ACTIV System`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
    * Send payment success notification with receipt attachment
    * @param memberName - Name of the member
    * @param email - Email address
@@ -179,6 +208,328 @@ ACTIV Team`
       },
       subject: '',
       message: `Dear ${memberName}, your payment of Rs.${amount} has been received. Payment ID: ${paymentId}. View receipt in your account. - ACTIV`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send approval notification
+   * @param memberName - Name of the member
+   * @param email - Email address
+   * @param phone - Phone number
+   * @param itemType - Type of item being approved (application, product, etc.)
+   * @param itemName - Name of the item being approved
+   * @param status - Approval status (approved/rejected)
+   * @returns Promise with sending result
+   */
+  async sendApprovalNotification(
+    memberName: string,
+    email: string | undefined,
+    phone: string | undefined,
+    itemType: string,
+    itemName: string | undefined,
+    status: "approved" | "rejected"
+  ): Promise<boolean> {
+    const action = status === "approved" ? "approved" : "rejected";
+    const actionWord = status === "approved" ? "Approval" : "Rejection";
+    
+    const payload: NotificationPayload = {
+      type: 'approval',
+      recipient: {
+        name: memberName,
+        email,
+        phone
+      },
+      subject: `${actionWord} Notification - ${itemName || itemType}`,
+      message: `Dear ${memberName},
+      
+Your ${itemType} "${itemName || 'submission'}" has been ${action}.
+      
+${status === "approved" 
+  ? "Congratulations! Your application has been approved and you can now access all member benefits."
+  : "We regret to inform you that your application has been rejected. Please contact support for more information."}
+
+Best regards,
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send escalation notification
+   * @param memberName - Name of the member
+   * @param email - Email address
+   * @param phone - Phone number
+   * @param itemType - Type of item being escalated
+   * @param itemName - Name of the item being escalated
+   * @param fromLevel - Current approval level
+   * @param toLevel - Escalation level
+   * @returns Promise with sending result
+   */
+  async sendEscalationNotification(
+    memberName: string,
+    email: string | undefined,
+    phone: string | undefined,
+    itemType: string,
+    itemName: string | undefined,
+    fromLevel: string,
+    toLevel: string
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'escalation',
+      recipient: {
+        name: memberName,
+        email,
+        phone
+      },
+      subject: `Escalation Notification - ${itemName || itemType}`,
+      message: `Dear ${memberName},
+      
+Your ${itemType} "${itemName || 'submission'}" has been escalated from ${fromLevel} level to ${toLevel} level due to no action being taken within the stipulated time.
+      
+An administrator at the ${toLevel} level will review your submission shortly.
+
+Best regards,
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send reminder notification
+   * @param memberName - Name of the member
+   * @param email - Email address
+   * @param phone - Phone number
+   * @param title - Reminder title
+   * @param description - Reminder description
+   * @param dueDate - Due date
+   * @returns Promise with sending result
+   */
+  async sendReminderNotification(
+    memberName: string,
+    email: string | undefined,
+    phone: string | undefined,
+    title: string,
+    description: string,
+    dueDate: string
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'reminder',
+      recipient: {
+        name: memberName,
+        email,
+        phone
+      },
+      subject: `Reminder: ${title}`,
+      message: `Dear ${memberName},
+      
+This is a reminder for: ${title}
+      
+${description}
+      
+Due Date: ${new Date(dueDate).toLocaleDateString()}
+
+Best regards,
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send registration notification
+   * @param memberName - Name of the member
+   * @param email - Email address
+   * @param phone - Phone number
+   * @param memberId - Member ID
+   * @param businessName - Business name
+   * @returns Promise with sending result
+   */
+  async sendRegistrationNotification(
+    memberName: string,
+    email: string | undefined,
+    phone: string | undefined,
+    memberId: string,
+    businessName: string | undefined
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'registration',
+      recipient: {
+        name: memberName,
+        email,
+        phone
+      },
+      subject: 'Welcome to ACTIV - Registration Successful',
+      message: `Dear ${memberName},
+      
+Welcome to ACTIV! Your registration has been successfully completed.
+      
+Member ID: ${memberId}
+Business Name: ${businessName || 'Not provided'}
+      
+You will receive further instructions for the approval process shortly.
+
+Best regards,
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send cart update notification
+   * @param memberName - Name of the member
+   * @param email - Email address
+   * @param phone - Phone number
+   * @param action - Action performed (added/removed)
+   * @param itemName - Name of the item
+   * @param quantity - Quantity of the item
+   * @returns Promise with sending result
+   */
+  async sendCartUpdateNotification(
+    memberName: string,
+    email: string | undefined,
+    phone: string | undefined,
+    action: string,
+    itemName: string,
+    quantity: number
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'cart',
+      recipient: {
+        name: memberName,
+        email,
+        phone
+      },
+      subject: `Cart Update - Item ${action}`,
+      message: `Dear ${memberName},
+      
+Item "${itemName}" has been ${action} to your cart.
+Quantity: ${quantity}
+      
+You can view your cart anytime from your dashboard.
+
+Best regards,
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send order update notification
+   * @param memberName - Name of the member
+   * @param email - Email address
+   * @param phone - Phone number
+   * @param orderId - Order ID
+   * @param status - Order status
+   * @param itemName - Name of the item
+   * @returns Promise with sending result
+   */
+  async sendOrderUpdateNotification(
+    memberName: string,
+    email: string | undefined,
+    phone: string | undefined,
+    orderId: string,
+    status: string,
+    itemName: string
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'order',
+      recipient: {
+        name: memberName,
+        email,
+        phone
+      },
+      subject: `Order Update - ${orderId}`,
+      message: `Dear ${memberName},
+      
+Your order "${orderId}" for item "${itemName}" has been updated.
+Status: ${status}
+      
+You can track your order status from your dashboard.
+
+Best regards,
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send inquiry notification
+   * @param memberName - Name of the member
+   * @param email - Email address
+   * @param phone - Phone number
+   * @param productName - Product name
+   * @param customerName - Customer name
+   * @param quantity - Quantity
+   * @param message - Inquiry message
+   * @returns Promise with sending result
+   */
+  async sendInquiryNotification(
+    memberName: string,
+    email: string | undefined,
+    phone: string | undefined,
+    productName: string,
+    customerName: string,
+    quantity: number,
+    message: string
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'inquiry',
+      recipient: {
+        name: memberName,
+        email,
+        phone
+      },
+      subject: `New Inquiry for ${productName}`,
+      message: `Dear ${memberName},
+      
+You have received a new inquiry for your product "${productName}".
+      
+Customer: ${customerName}
+Quantity: ${quantity}
+Message: ${message}
+      
+Please respond to this inquiry at your earliest convenience.
+
+Best regards,
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send WhatsApp onboarding information
+   * @param memberName - Name of the member
+   * @param phone - Phone number
+   * @param businessName - Business name
+   * @returns Promise with sending result
+   */
+  async sendWhatsAppOnboarding(
+    memberName: string,
+    phone: string,
+    businessName: string | undefined
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'registration',
+      recipient: {
+        name: memberName,
+        phone
+      },
+      subject: '',
+      message: `Hello ${memberName}!
+      
+Welcome to ACTIV! Your business "${businessName || 'your business'}" has been registered successfully.
+      
+You'll receive important updates here. Save this number for future communications.
+
+ACTIV Team`
     };
 
     return this.sendNotification(payload);

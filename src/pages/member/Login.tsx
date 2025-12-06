@@ -16,9 +16,12 @@ import {
   Linkedin
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { generateToken } from "@/utils/jwt";
 
 const MemberLogin = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<{ memberId: string; password: string }>({ mode: 'onBlur' });
 
@@ -35,9 +38,24 @@ const MemberLogin = () => {
         if (res.ok) {
           const json = await res.json();
           const found = json.user;
+          
+          // Determine role based on memberId
+          const role = found.memberId.startsWith('ADMIN') ? 'block_admin' : 'member';
+          
+          // Generate JWT token with user info
+          const token = generateToken({
+            userId: found.id,
+            memberId: found.memberId,
+            role: role,
+            email: found.email
+          });
+          
+          // Use auth context to login
+          login(token);
+          
+          // Store additional user info in localStorage
           localStorage.setItem('userName', found.firstName || found.email || found.memberId);
           localStorage.setItem('memberId', found.memberId);
-          localStorage.setItem('isLoggedIn', 'true');
           navigate('/member/dashboard');
           return;
         }
@@ -63,10 +81,23 @@ const MemberLogin = () => {
         return;
       }
 
+      // Determine role based on memberId
+      const role = found.memberId.startsWith('ADMIN') ? 'block_admin' : 'member';
+      
+      // Generate JWT token with user info
+      const token = generateToken({
+        userId: found.id || found.memberId,
+        memberId: found.memberId,
+        role: role,
+        email: found.email
+      });
+      
+      // Use auth context to login
+      login(token);
+      
       // Set logged-in session info
       localStorage.setItem("userName", found.firstName || found.email || found.memberId);
       localStorage.setItem("memberId", found.memberId);
-      localStorage.setItem("isLoggedIn", "true");
       navigate("/member/dashboard");
     } catch (err) {
       console.error(err);
@@ -78,6 +109,23 @@ const MemberLogin = () => {
     toast.info(`Logging in with ${provider}...`);
     // In a real app, this would redirect to the OAuth provider
     console.log(`Social login with ${provider}`);
+    
+    // For demo purposes, create a mock user and token
+    const mockUserId = `social_${provider.toLowerCase()}_${Date.now()}`;
+    const token = generateToken({
+      userId: mockUserId,
+      memberId: `SOCIAL_${mockUserId.toUpperCase()}`,
+      role: 'member',
+      email: `${provider.toLowerCase()}user@example.com`
+    });
+    
+    // Use auth context to login
+    login(token);
+    
+    // Store user info
+    localStorage.setItem('userName', `${provider} User`);
+    localStorage.setItem('memberId', `SOCIAL_${mockUserId.toUpperCase()}`);
+    navigate("/member/dashboard");
   };
 
   return (

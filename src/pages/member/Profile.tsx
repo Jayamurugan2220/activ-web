@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Menu, Save, Edit2, X } from "lucide-react";
+import { Menu, Save, Edit2, X, Camera, User } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/Sidebar";
 import MobileMenu from "@/components/MobileMenu";
 import { INDIA_DISTRICTS } from "@/data/india-districts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import notificationService from "@/services/notificationService"; // Import notification service
 
 type ProfileData = {
   firstName: string;
@@ -23,6 +24,7 @@ type ProfileData = {
   district?: string;
   block?: string;
   address?: string;
+  profileImage?: string; // Add profile image field
 };
 
 const defaultProfile: ProfileData = {
@@ -37,12 +39,14 @@ const defaultProfile: ProfileData = {
   district: "",
   block: "",
   address: "",
+  profileImage: "", // Initialize profile image
 };
 
 export default function MemberProfile() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [districts, setDistricts] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [profileImagePreview, setProfileImagePreview] = useState<string>(""); // For image preview
 
   const {
     register,
@@ -60,6 +64,10 @@ export default function MemberProfile() {
       try {
         const obj = JSON.parse(saved);
         reset({ ...defaultProfile, ...obj });
+        // Set profile image preview if exists
+        if (obj.profileImage) {
+          setProfileImagePreview(obj.profileImage);
+        }
       } catch (e) {
         reset(defaultProfile);
       }
@@ -74,7 +82,35 @@ export default function MemberProfile() {
     else setDistricts([]);
   }, [selectedState]);
 
+  // Handle profile image upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check if file is an image
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
+        return;
+      }
+
+      // Check file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Image size should be less than 2MB");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageDataUrl = event.target?.result as string;
+        setProfileImagePreview(imageDataUrl);
+        // Update form data with image
+        reset({ ...watch(), profileImage: imageDataUrl });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const getCompletionPercentage = (values: ProfileData) => {
+    // Define all fields that contribute to profile completion
     const fields = [
       values.firstName,
       values.lastName,
@@ -86,12 +122,17 @@ export default function MemberProfile() {
       values.district,
       values.block,
       values.address,
+      values.profileImage, // Include profile image in completion calculation
     ];
+    
+    // Count filled fields (non-empty and not just whitespace)
     const filled = fields.filter((v) => !!v && `${v}`.trim() !== "").length;
+    
+    // Calculate percentage (0-100)
     return Math.round((filled / fields.length) * 100) || 0;
   };
 
-  const onSave = (data: ProfileData) => {
+  const onSave = async (data: ProfileData) => { // Make onSave async
     if (!data.firstName || !data.email || !data.phone || !data.state || !data.district) {
       toast.error("Please fill in required fields before saving.");
       return;
@@ -100,6 +141,17 @@ export default function MemberProfile() {
     localStorage.setItem("userProfile", JSON.stringify(data));
     localStorage.setItem("userName", `${data.firstName} ${data.lastName ?? ""}`.trim());
     localStorage.setItem("registrationData", JSON.stringify(data));
+
+    // Send notification to admins about profile update
+    try {
+      const memberId = localStorage.getItem("memberId") || "Unknown";
+      await notificationService.sendProfileUpdateNotification(
+        `${data.firstName} ${data.lastName ?? ""}`.trim(),
+        memberId
+      );
+    } catch (error) {
+      console.error("Failed to send profile update notification:", error);
+    }
 
     setIsEditing(false);
     toast.success("Profile saved successfully");
@@ -161,6 +213,59 @@ export default function MemberProfile() {
               </div>
             </div>
 
+            {/* Profile Image Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Picture</CardTitle>
+                <CardDescription>Upload a profile picture to personalize your account</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-6">
+                  <div className="relative">
+                    {profileImagePreview ? (
+                      <img 
+                        src={profileImagePreview} 
+                        alt="Profile" 
+                        className="w-24 h-24 rounded-full object-cover border-2 border-primary"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-2 border-primary">
+                        <User className="w-12 h-12 text-gray-400" />
+                      </div>
+                    )}
+                    {isEditing && (
+                      <label className="absolute bottom-0 right-0 bg-primary rounded-full p-2 cursor-pointer">
+                        <Camera className="w-4 h-4 text-white" />
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={handleImageUpload}
+                        />
+                      </label>
+                    )}
+                  </div>
+                  {isEditing && (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        JPG, PNG or GIF. Max size 2MB
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setProfileImagePreview("");
+                          reset({ ...watch(), profileImage: "" });
+                        }}
+                      >
+                        Remove Photo
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardContent className="pt-6">
                 <div className="space-y-2">
@@ -172,6 +277,12 @@ export default function MemberProfile() {
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div className="h-2 rounded-full bg-blue-600 transition-all duration-300" style={{ width: `${completion}%` }} />
                   </div>
+                  
+                  {completion < 100 && (
+                    <p className="text-xs text-muted-foreground">
+                      Complete your profile to unlock all features. {100 - completion}% remaining.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

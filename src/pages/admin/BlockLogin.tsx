@@ -5,15 +5,59 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Lock } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { generateToken } from "@/utils/jwt";
 
 const BlockLogin = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [memberId, setMemberId] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/admin/block/dashboard");
+    
+    try {
+      // Try backend auth first
+      const res = await fetch('http://localhost:4000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: memberId, password }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const found = json.user;
+        
+        // Check if user is an admin
+        if (!found.memberId.startsWith('ADMIN')) {
+          alert('Invalid admin credentials');
+          return;
+        }
+        
+        // Generate JWT token with user info
+        const token = generateToken({
+          userId: found.id,
+          memberId: found.memberId,
+          role: 'block_admin',
+          email: found.email
+        });
+        
+        // Use auth context to login
+        login(token);
+        
+        // Store additional user info in localStorage
+        localStorage.setItem('userName', found.firstName || found.email || found.memberId);
+        localStorage.setItem('memberId', found.memberId);
+        navigate('/admin/dashboard');
+        return;
+      } else {
+        alert('Invalid credentials');
+        return;
+      }
+    } catch (err) {
+      alert('Login failed. Please try again later.');
+    }
   };
 
   return (

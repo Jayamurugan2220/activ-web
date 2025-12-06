@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Mail, Phone, User, VenetianMask, AlertTriangle, MapPin, Building } from "lucide-react";
+import { CheckCircle, XCircle, Mail, Phone, User, VenetianMask, AlertTriangle, MapPin, Building, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Define TypeScript interfaces
@@ -26,9 +26,10 @@ interface ApprovalCardProps {
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onEscalate?: (id: string) => void;
+  isAdmin?: boolean; // Super Admin flag
 }
 
-const ApprovalCard = ({ member, onApprove, onReject, onEscalate }: ApprovalCardProps) => {
+const ApprovalCard = ({ member, onApprove, onReject, onEscalate, isAdmin }: ApprovalCardProps) => {
   const { toast } = useToast();
 
   const handleApprove = () => {
@@ -131,7 +132,12 @@ const ApprovalCard = ({ member, onApprove, onReject, onEscalate }: ApprovalCardP
         
         <div className="flex items-center gap-2">
           <span className="font-medium">Current Level:</span>
-          <Badge variant="default">{getLevelDisplayName(member.currentLevel)}</Badge>
+          <Badge variant="default" className="flex items-center gap-1">
+            {getLevelDisplayName(member.currentLevel)}
+            {isAdmin && member.currentLevel !== "super" && (
+              <Crown className="w-3 h-3" />
+            )}
+          </Badge>
         </div>
         
         <div className="flex items-center gap-2">
@@ -139,6 +145,18 @@ const ApprovalCard = ({ member, onApprove, onReject, onEscalate }: ApprovalCardP
           <span className="font-medium">Phone:</span>
           <span>{member.phone}</span>
         </div>
+        
+        {isAdmin && member.currentLevel !== "super" && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <Crown className="w-4 h-4 text-yellow-600" />
+              <span className="text-sm font-medium text-yellow-800">Super Admin Override Available</span>
+            </div>
+            <p className="text-xs text-yellow-700 mt-1">
+              As Super Admin, you can approve this application directly to final approval.
+            </p>
+          </div>
+        )}
       </CardContent>
       
       <CardFooter className="flex justify-between">
@@ -168,7 +186,7 @@ const ApprovalCard = ({ member, onApprove, onReject, onEscalate }: ApprovalCardP
           className="flex items-center gap-2"
         >
           <CheckCircle className="w-4 h-4" />
-          Approve
+          {isAdmin && member.currentLevel !== "super" ? "Approve Directly" : "Approve"}
         </Button>
       </CardFooter>
     </Card>

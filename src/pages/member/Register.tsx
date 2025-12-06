@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, ArrowRight, Upload, Building, MapPin, User, ArrowLeft } from "lucide-react";
+import { UserPlus, ArrowRight, Upload, Building, MapPin, User, ArrowLeft, FileText, IdCard } from "lucide-react";
 import { toast } from "sonner";
 import { INDIA_DISTRICTS } from "@/data/india-districts";
 import notificationService from "@/services/notificationService";
@@ -18,9 +18,12 @@ const MemberRegister = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [profilePicture, setProfilePicture] = useState<string>("");
-  
+  const [idProof, setIdProof] = useState<File | null>(null);
+  const [businessDocuments, setBusinessDocuments] = useState<File[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
   const [partialData, setPartialData] = useState<any>({});
+  const idProofRef = useRef<HTMLInputElement>(null);
+  const businessDocsRef = useRef<HTMLInputElement>(null);
 
   type Step1Form = {
     firstName: string;
@@ -45,7 +48,7 @@ const MemberRegister = () => {
   };
 
   type Step3Form = {
-    memberName: string;
+    memberId: string;
     password: string;
     confirmPassword: string;
     stateName: string;
@@ -65,6 +68,12 @@ const MemberRegister = () => {
   };
 
   const handleStep2Submit = (data: Step2Form) => {
+    // Validate Udyam Number format if provided
+    if (data.udyamNumber && !/^UDYAM[A-Z0-9]{12}$/.test(data.udyamNumber)) {
+      toast.error("Invalid Udyam Number format. Please use format: UDYAMXXXXXXXXXXXX");
+      return;
+    }
+    
     setPartialData(prev => ({ ...prev, ...data }));
     setStep(3);
   };
@@ -75,14 +84,27 @@ const MemberRegister = () => {
       return;
     }
 
+    // Auto-generate Membership ID if not provided
+    let finalMemberId = data.memberId;
+    if (!finalMemberId) {
+      const firstName = partialData.firstName || 'MEMBER';
+      const randomNumber = Math.floor(1000 + Math.random() * 9000);
+      finalMemberId = `${firstName.toUpperCase().substring(0, 3)}${randomNumber}`;
+    }
+
     const combined = {
       ...partialData,
       ...data,
-      memberId: data.memberName,
+      memberId: finalMemberId,
       password: data.password,
       state: data.stateName,
       district: data.districtName,
       registeredAt: new Date().toISOString(),
+      // Add approval workflow fields
+      status: "pending",
+      currentLevel: "block",
+      submissionDate: new Date().toISOString().split('T')[0],
+      lastActionDate: new Date().toISOString().split('T')[0]
     };
 
     // Persist user to users list so they can login later
@@ -91,19 +113,27 @@ const MemberRegister = () => {
       const users = JSON.parse(usersJson) as Array<any>;
 
       // prevent duplicate memberId
-      if (users.some((u) => u.memberId === data.memberName)) {
+      if (users.some((u) => u.memberId === finalMemberId)) {
         toast.error('Member ID already exists. Please choose another.');
         return;
       }
 
       users.push({
-        memberId: data.memberName,
+        memberId: finalMemberId,
         password: data.password,
         email: partialData.email,
         firstName: partialData.firstName,
         memberType: partialData.memberType,
         businessName: partialData.businessName,
         registeredAt: new Date().toISOString(),
+        // Add approval workflow fields
+        status: "pending",
+        currentLevel: "block",
+        submissionDate: new Date().toISOString().split('T')[0],
+        lastActionDate: new Date().toISOString().split('T')[0],
+        district: data.districtName,
+        state: data.stateName,
+        block: data.block
       });
 
       // Try to register with backend if available, otherwise fallback to localStorage users
@@ -113,7 +143,7 @@ const MemberRegister = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            memberId: data.memberName, 
+            memberId: finalMemberId, 
             password: data.password, 
             email: partialData.email, 
             firstName: partialData.firstName,
@@ -132,11 +162,57 @@ const MemberRegister = () => {
 
       if (!backendOk) localStorage.setItem('users', JSON.stringify(users));
 
+      // Also save application data for approval workflow
+      try {
+        const applicationsJson = localStorage.getItem('applications') || '[]';
+        const applications = JSON.parse(applicationsJson) as Array<any>;
+        
+        // Generate unique application ID
+        const applicationId = `ACTIV${new Date().getFullYear()}${String(applications.length + 1).padStart(3, '0')}`;
+        
+        const applicationData = {
+          id: applicationId,
+          name: `${partialData.firstName} ${partialData.lastName || ''}`,
+          email: partialData.email,
+          role: "Member",
+          gender: partialData.gender || "Not specified",
+          sector: partialData.memberType === "individual" ? "Individual" : 
+                 partialData.memberType === "shg" ? "Self Help Group" : "Farmer Producer Organization",
+          phone: partialData.mobile,
+          status: "pending",
+          date: new Date().toISOString().split('T')[0],
+          currentLevel: "block",
+          memberType: partialData.memberType,
+          businessName: partialData.businessName,
+          district: data.districtName,
+          state: data.stateName,
+          block: data.block,
+          submissionDate: new Date().toISOString().split('T')[0],
+          lastActionDate: new Date().toISOString().split('T')[0]
+        };
+        
+        applications.push(applicationData);
+        localStorage.setItem('applications', JSON.stringify(applications));
+        
+        // Also save to backend if available
+        try {
+          await fetch('http://localhost:4000/api/applications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(applicationData),
+          });
+        } catch (err) {
+          console.log("Backend not available for applications, using localStorage");
+        }
+      } catch (err) {
+        console.error("Error saving application data:", err);
+      }
+
       // Keep registrationData (profile) for convenience
       localStorage.setItem('registrationData', JSON.stringify(combined));
       localStorage.setItem('userName', partialData.firstName || combined.firstName || 'Member');
       // set session so the user is logged in immediately after register
-      localStorage.setItem('memberId', data.memberName);
+      localStorage.setItem('memberId', finalMemberId);
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.removeItem('hasVisitedDashboard');
       
@@ -147,7 +223,7 @@ const MemberRegister = () => {
           partialData.firstName || combined.firstName || 'Member',
           partialData.email,
           partialData.mobile,
-          data.memberName,
+          finalMemberId,
           partialData.businessName || 'your business'
         );
         
@@ -163,7 +239,7 @@ const MemberRegister = () => {
         dueDate.setDate(dueDate.getDate() + 3); // 3 days from now
         
         reminderService.scheduleReminder(
-          data.memberName,
+          finalMemberId,
           "profile",
           "Complete Your Profile",
           "Complete your member profile to unlock all platform features",
@@ -190,6 +266,23 @@ const MemberRegister = () => {
         setProfilePicture(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleIdProofUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIdProof(file);
+      toast.success("ID proof uploaded successfully");
+    }
+  };
+
+  const handleBusinessDocsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const fileList = Array.from(files);
+      setBusinessDocuments(fileList);
+      toast.success(`${fileList.length} document(s) uploaded successfully`);
     }
   };
 
@@ -253,6 +346,30 @@ const MemberRegister = () => {
               <CardContent>
                 {step === 1 ? (
                   <form onSubmit={handleSubmitStep1(handleStep1Submit)} className="space-y-6">
+                    <div className="flex flex-col items-center mb-6">
+                      <div className="relative">
+                        <Avatar className="w-24 h-24">
+                          {profilePicture ? (
+                            <AvatarImage src={profilePicture} alt="Profile" />
+                          ) : (
+                            <AvatarFallback className="bg-primary/10 text-primary">
+                              <User className="w-12 h-12" />
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <label className="absolute bottom-0 right-0 bg-primary rounded-full p-2 cursor-pointer">
+                          <Upload className="w-4 h-4 text-primary-foreground" />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">Profile Picture (Optional)</p>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="firstName">First Name*</Label>
@@ -338,8 +455,11 @@ const MemberRegister = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="udyamNumber">Udyam Number</Label>
-                      <Input id="udyamNumber" placeholder="UDYAMXXXXXXXXXX" {...registerStep2('udyamNumber')} />
-                      <p className="text-xs text-muted-foreground">Format validation only (no API verification)</p>
+                      <Input id="udyamNumber" placeholder="UDYAMXXXXXXXXXXXX" {...registerStep2('udyamNumber')} />
+                      <p className="text-xs text-muted-foreground">Format: UDYAM followed by 12 alphanumeric characters</p>
+                      {partialData.memberType && partialData.memberType !== "individual" && (
+                        <p className="text-xs text-muted-foreground">Required for SHG/FPO registrations</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -373,6 +493,57 @@ const MemberRegister = () => {
                       <Textarea id="businessDescription" placeholder="Describe your business..." {...registerStep2('businessDescription')} />
                     </div>
 
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <IdCard className="w-4 h-4" />
+                          Upload ID Proof*
+                        </Label>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                             onClick={() => idProofRef.current?.click()}>
+                          <FileText className="w-6 h-6 mx-auto text-gray-400" />
+                          <p className="text-sm mt-2">Click to upload ID proof</p>
+                          <p className="text-xs text-muted-foreground mt-1">Aadhaar, PAN, Passport, etc.</p>
+                          <input
+                            type="file"
+                            ref={idProofRef}
+                            className="hidden"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleIdProofUpload}
+                          />
+                        </div>
+                        {idProof && (
+                          <p className="text-xs text-green-600 mt-1">Uploaded: {idProof.name}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Building className="w-4 h-4" />
+                          Upload Business Documents
+                        </Label>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                             onClick={() => businessDocsRef.current?.click()}>
+                          <FileText className="w-6 h-6 mx-auto text-gray-400" />
+                          <p className="text-sm mt-2">Click to upload business documents</p>
+                          <p className="text-xs text-muted-foreground mt-1">Registration certificate, license, etc.</p>
+                          <input
+                            type="file"
+                            ref={businessDocsRef}
+                            className="hidden"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleBusinessDocsUpload}
+                            multiple
+                          />
+                        </div>
+                        {businessDocuments.length > 0 && (
+                          <p className="text-xs text-green-600 mt-1">
+                            Uploaded {businessDocuments.length} document(s)
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="flex justify-between">
                       <Button type="button" variant="outline" onClick={() => setStep(1)}>Previous</Button>
                       <Button type="submit" className="bg-blue-600 text-white">Next</Button>
@@ -381,9 +552,9 @@ const MemberRegister = () => {
                 ) : (
                   <form onSubmit={handleSubmitStep3(handleStep3Submit)} className="space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="memberId">Member ID*</Label>
-                      <Input id="memberId" placeholder="Choose a unique member ID" {...registerStep3('memberName', { required: 'Member ID required' })} />
-                      {errorsStep3.memberName && <p className="text-xs text-red-600 mt-1">{errorsStep3.memberName.message}</p>}
+                      <Label htmlFor="memberId">Member ID</Label>
+                      <Input id="memberId" placeholder="Leave blank to auto-generate" {...registerStep3('memberId')} />
+                      <p className="text-xs text-muted-foreground">Leave blank to auto-generate a unique ID</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -428,9 +599,9 @@ const MemberRegister = () => {
                         name="districtName"
                         rules={{ required: 'District is required' }}
                         render={({ field }) => (
-                          <Select value={field.value || ''} onValueChange={(v: string) => field.onChange(v)}>
+                          <Select value={field.value || ''} onValueChange={(v: string) => field.onChange(v)} disabled={!watchedState}>
                             <SelectTrigger>
-                              <SelectValue placeholder={districts.length ? 'Select district' : 'No districts available'} />
+                              <SelectValue placeholder={districts.length ? 'Select district' : 'Select state first'} />
                             </SelectTrigger>
                             <SelectContent>
                               {districts.length > 0 ? (
@@ -438,10 +609,7 @@ const MemberRegister = () => {
                                   <SelectItem key={d} value={d}>{d}</SelectItem>
                                 ))
                               ) : (
-                                <>
-                                  <SelectItem value="district1">District 1</SelectItem>
-                                  <SelectItem value="district2">District 2</SelectItem>
-                                </>
+                                <SelectItem value="" disabled>No districts available</SelectItem>
                               )}
                             </SelectContent>
                           </Select>
@@ -466,6 +634,40 @@ const MemberRegister = () => {
                       <Label htmlFor="pincode">Pincode*</Label>
                       <Input id="pincode" placeholder="XXXXXX" {...registerStep3('pincode', { required: 'Pincode required' })} />
                       {errorsStep3.pincode && <p className="text-xs text-red-600 mt-1">{errorsStep3.pincode.message}</p>}
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-medium text-blue-800 flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        Approval Workflow
+                      </h4>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Your application will go through a multi-level approval process:
+                      </p>
+                      <div className="flex items-center justify-between mt-3 text-xs">
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">1</div>
+                          <span className="mt-1 text-blue-700">Block Admin</span>
+                        </div>
+                        <div className="flex-1 h-0.5 bg-blue-300 mx-2"></div>
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">2</div>
+                          <span className="mt-1 text-blue-700">District Admin</span>
+                        </div>
+                        <div className="flex-1 h-0.5 bg-blue-300 mx-2"></div>
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">3</div>
+                          <span className="mt-1 text-blue-700">State Admin</span>
+                        </div>
+                        <div className="flex-1 h-0.5 bg-blue-300 mx-2"></div>
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white">✓</div>
+                          <span className="mt-1 text-green-700">Final Approval</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-blue-600 mt-3">
+                        Super Admin can override any level if needed.
+                      </p>
                     </div>
 
                     <div className="flex justify-between">
