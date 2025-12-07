@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { FaHome, FaCheckCircle, FaUsers, FaCog, FaSignOutAlt, FaTimes } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useNavigate } from 'react-router-dom';
 
 type Props = {
   isOpen: boolean;
@@ -11,6 +12,7 @@ type Props = {
 
 export default function AdminMobileMenu({ isOpen, onClose }: Props) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const nav = [
     { to: '/admin/dashboard', label: 'Home', icon: <FaHome /> },
@@ -18,6 +20,21 @@ export default function AdminMobileMenu({ isOpen, onClose }: Props) {
     { to: '/admin/members', label: 'Members', icon: <FaUsers /> },
     { to: '/admin/settings', label: 'Settings', icon: <FaCog /> },
   ];
+
+  const handleLogout = () => {
+    // Clear all local storage items related to login
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('memberId');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('role');
+    localStorage.removeItem('isAdminLoggedIn');
+    localStorage.removeItem('adminId');
+    localStorage.removeItem('sessionStart');
+    
+    // Close the mobile menu and navigate to main login page
+    onClose();
+    navigate('/login');
+  };
 
   if (!isOpen) return null;
 
@@ -64,7 +81,7 @@ export default function AdminMobileMenu({ isOpen, onClose }: Props) {
         </nav>
 
         <div className="p-2 border-t">
-          <Button variant="ghost" onClick={() => { localStorage.removeItem('isLoggedIn'); localStorage.removeItem('memberId'); localStorage.removeItem('userName'); onClose(); window.location.href = '/admin/block/login'; }} className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 p-3">
+          <Button variant="ghost" onClick={handleLogout} className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 p-3">
             <FaSignOutAlt className="w-5 h-5" />
             <span>Log out</span>
           </Button>
