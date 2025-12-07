@@ -145,6 +145,8 @@ const SharedCatalog = () => {
 
   const generateQRCode = () => {
     setShowQRCode(true);
+    // In a real app, we could also send a notification about QR code generation
+    toast.success("QR Code generated! Scan to view catalog.");
   };
 
   return (
@@ -251,9 +253,22 @@ const SharedCatalog = () => {
                 <p className="text-sm text-muted-foreground text-center">
                   Scan this QR code to view the catalog on your mobile device
                 </p>
-                <Button variant="outline" size="sm" onClick={() => setShowQRCode(false)}>
-                  Close
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setShowQRCode(false)}>
+                    Close
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success("Link copied to clipboard!");
+                    }}
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Link
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

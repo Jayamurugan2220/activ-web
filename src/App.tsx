@@ -67,6 +67,7 @@ import OrderDetails from "./pages/marketplace/OrderDetails";
 // Business Showcase
 import BusinessShowcase from "./pages/member/BusinessShowcase";
 import BusinessDirectory from "./pages/member/BusinessDirectory";
+import DiscoverLoginPage from "./pages/member/MultiBusinessDiscover";
 
 // Inventory Tracking
 import Inventory from "./pages/member/Inventory";
@@ -111,6 +112,9 @@ const App = () => (
                 <Route path="/member/register" element={<MemberRegister />} />
                 <Route path="/member/forgot-password" element={<ForgotPassword />} />
                 <Route path="/register" element={<MemberRegister />} />
+                
+                {/* Custom login page */}
+                <Route path="/member/discover-login" element={<DiscoverLoginPage />} />
 
                 {/* Protected Member Routes */}
                 <Route 
@@ -353,6 +357,12 @@ const App = () => (
                     <ProtectedRoute requiredRoles={['member']}>
                       <BusinessDirectory />
                     </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/member/business/discover" 
+                  element={
+                    <DiscoverLoginPage />
                   } 
                 />
                 

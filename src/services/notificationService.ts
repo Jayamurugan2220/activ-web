@@ -534,6 +534,155 @@ ACTIV Team`
 
     return this.sendNotification(payload);
   }
+
+  /**
+   * Send QR Code via WhatsApp
+   * @param memberName - Name of the member
+   * @param phone - Phone number
+   * @param qrCodeLink - QR code link
+   * @param businessName - Business name
+   * @returns Promise with sending result
+   */
+  async sendQRCodeWhatsApp(
+    memberName: string,
+    phone: string | undefined,
+    qrCodeLink: string,
+    businessName: string | undefined
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'document',
+      recipient: {
+        name: memberName,
+        phone
+      },
+      subject: '',
+      message: `Hello ${memberName}!
+      
+Here is your QR code for your business catalog "${businessName || 'your business'}".
+      
+Scan this QR code to view your product catalog: ${qrCodeLink}
+
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send Catalog Link via WhatsApp
+   * @param memberName - Name of the member
+   * @param phone - Phone number
+   * @param catalogLink - Catalog link
+   * @param businessName - Business name
+   * @returns Promise with sending result
+   */
+  async sendCatalogLinkWhatsApp(
+    memberName: string,
+    phone: string | undefined,
+    catalogLink: string,
+    businessName: string | undefined
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'document',
+      recipient: {
+        name: memberName,
+        phone
+      },
+      subject: '',
+      message: `Hello ${memberName}!
+      
+Check out our product catalog for "${businessName || 'your business'}".
+      
+View our catalog here: ${catalogLink}
+
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send B2B Inquiry via WhatsApp
+   * @param memberName - Name of the member
+   * @param phone - Phone number
+   * @param productName - Product name
+   * @param customerName - Customer name
+   * @param quantity - Quantity
+   * @param message - Inquiry message
+   * @returns Promise with sending result
+   */
+  async sendB2BInquiryWhatsApp(
+    memberName: string,
+    phone: string,
+    productName: string,
+    customerName: string,
+    quantity: number,
+    message: string
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'inquiry',
+      recipient: {
+        name: memberName,
+        phone
+      },
+      subject: '',
+      message: `Hello ${memberName}!
+      
+You have received a new B2B inquiry for your product "${productName}".
+      
+Customer: ${customerName}
+Quantity: ${quantity}
+Message: ${message}
+
+Please respond to this inquiry at your earliest convenience.
+
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
+
+  /**
+   * Send inquiry response notification
+   * @param memberName - Name of the member
+   * @param email - Email address
+   * @param phone - Phone number
+   * @param productName - Product name
+   * @param sellerName - Seller name
+   * @param response - Response message
+   * @returns Promise with sending result
+   */
+  async sendInquiryResponseNotification(
+    memberName: string,
+    email: string | undefined,
+    phone: string | undefined,
+    productName: string,
+    sellerName: string,
+    response: string
+  ): Promise<boolean> {
+    const payload: NotificationPayload = {
+      type: 'response',
+      recipient: {
+        name: memberName,
+        email,
+        phone
+      },
+      subject: `Response to your inquiry about ${productName}`,
+      message: `Dear ${memberName},
+      
+Thank you for your interest in "${productName}".
+      
+${sellerName} has responded to your inquiry:
+${response}
+
+Please contact the seller directly if you need further information.
+
+Best regards,
+ACTIV Team`
+    };
+
+    return this.sendNotification(payload);
+  }
 }
 
 // Export singleton instance

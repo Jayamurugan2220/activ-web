@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,14 +13,15 @@ import {
   Copy,
   Check,
   User,
-  Phone
+  Phone,
+  Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
 import notificationService from "@/services/notificationService";
 
-// Mock product data
+// Mock product data - in a real app this would come from an API
 const products = [
   {
     id: "P001",
@@ -42,6 +43,27 @@ const products = [
     price: 1500,
     image: "/placeholder.svg",
     category: "Food Products"
+  },
+  {
+    id: "P004",
+    name: "Organic Turmeric Powder",
+    price: 250,
+    image: "/placeholder.svg",
+    category: "Food Products"
+  },
+  {
+    id: "P005",
+    name: "Traditional Handloom Saree",
+    price: 3500,
+    image: "/placeholder.svg",
+    category: "Textiles"
+  },
+  {
+    id: "P006",
+    name: "Wooden Craft Box Set",
+    price: 1200,
+    image: "/placeholder.svg",
+    category: "Handicrafts"
   }
 ];
 
@@ -49,8 +71,31 @@ const WhatsAppSharing = () => {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [message, setMessage] = useState("Check out our latest products!");
   const [recipient, setRecipient] = useState("");
+  const [recipients, setRecipients] = useState<string[]>([]);
+  const [newRecipient, setNewRecipient] = useState("");
   const [copied, setCopied] = useState(false);
   const [qrCode, setQrCode] = useState("");
+  const [businessInfo, setBusinessInfo] = useState({
+    name: "",
+    tagline: "",
+    logo: ""
+  });
+
+  // Load business info from localStorage or API
+  useEffect(() => {
+    // In a real app, this would come from an API or context
+    const storedBusinessInfo = localStorage.getItem("businessInfo");
+    if (storedBusinessInfo) {
+      setBusinessInfo(JSON.parse(storedBusinessInfo));
+    } else {
+      // Default business info
+      setBusinessInfo({
+        name: "My Business",
+        tagline: "Premium quality products",
+        logo: "/placeholder.svg"
+      });
+    }
+  }, []);
 
   // Generate shareable link
   const shareableLink = `${window.location.origin}/catalog/${btoa(selectedProducts.join(","))}`;
@@ -61,6 +106,39 @@ const WhatsAppSharing = () => {
     } else {
       setSelectedProducts([...selectedProducts, productId]);
     }
+  };
+
+  const addRecipient = () => {
+    if (newRecipient && !recipients.includes(newRecipient)) {
+      setRecipients([...recipients, newRecipient]);
+      setNewRecipient("");
+    }
+  };
+
+  const removeRecipient = (recipientToRemove: string) => {
+    setRecipients(recipients.filter(r => r !== recipientToRemove));
+  };
+
+  const clearRecipients = () => {
+    setRecipients([]);
+  };
+
+  const formatPhoneNumber = (phone: string) => {
+    // Remove all non-digit characters
+    const cleaned = phone.replace(/\D/g, '');
+    
+    // Format as +91 XXXXX XXXXX
+    if (cleaned.length >= 10) {
+      const nationalNumber = cleaned.slice(-10);
+      return `+91 ${nationalNumber.slice(0, 5)} ${nationalNumber.slice(5)}`;
+    }
+    
+    return phone;
+  };
+
+  const isValidPhoneNumber = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, '');
+    return cleaned.length >= 10 && cleaned.length <= 12;
   };
 
   const copyLink = () => {
@@ -77,19 +155,25 @@ const WhatsAppSharing = () => {
     // Send QR code via WhatsApp notification service
     try {
       await notificationService.sendQRCodeWhatsApp(
-        "Recipient", // In a real app, we would have the recipient's name
+        businessInfo.name, // Business name
         "", // In a real app, we would have the recipient's phone
         shareableLink,
-        "Business" // In a real app, this would be the actual business name
+        businessInfo.name
       );
     } catch (error) {
       console.error('Failed to send QR code via WhatsApp service:', error);
+      toast.error("Failed to send QR code notification");
     }
   };
 
   const shareViaWhatsApp = async () => {
     if (!recipient) {
       toast.error("Please enter a recipient");
+      return;
+    }
+    
+    if (!isValidPhoneNumber(recipient)) {
+      toast.error("Please enter a valid phone number");
       return;
     }
     
@@ -103,19 +187,26 @@ const WhatsAppSharing = () => {
     // Also send via notification service for tracking
     try {
       await notificationService.sendCatalogLinkWhatsApp(
-        "Recipient", // In a real app, we would have the recipient's name
+        businessInfo.name, // Business name
         phoneNumber,
         shareableLink,
-        "Seller" // In a real app, this would be the actual seller name
+        businessInfo.name
       );
+      toast.success("Catalog shared successfully!");
     } catch (error) {
       console.error('Failed to send catalog link via WhatsApp service:', error);
+      toast.error("Failed to send catalog notification");
     }
   };
 
   const shareCatalog = async () => {
     if (selectedProducts.length === 0) {
       toast.error("Please select at least one product");
+      return;
+    }
+    
+    if (recipients.length === 0) {
+      toast.error("Please add at least one recipient");
       return;
     }
     
@@ -134,21 +225,56 @@ ${productList}
 
 View full catalog: ${shareableLink}`;
     
-    // Show success message
-    toast.success("Catalog shared successfully!");
-    console.log("WhatsApp message:", fullMessage);
-    
-    // Also send via notification service for tracking
-    try {
-      await notificationService.sendCatalogLinkWhatsApp(
-        "Recipient", // In a real app, we would have the recipient's name
-        "", // In a real app, we would have the recipient's phone
-        shareableLink,
-        "Seller" // In a real app, this would be the actual seller name
-      );
-    } catch (error) {
-      console.error('Failed to send catalog link via WhatsApp service:', error);
+    // Send to all recipients
+    let successCount = 0;
+    for (const recipient of recipients) {
+      if (!isValidPhoneNumber(recipient)) {
+        toast.error(`Invalid phone number: ${formatPhoneNumber(recipient)}`);
+        continue;
+      }
+      
+      const phoneNumber = recipient.replace(/\D/g, '');
+      const encodedMessage = encodeURIComponent(`${message}\n\n${shareableLink}`);
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+      
+      try {
+        // Send via notification service for tracking
+        await notificationService.sendCatalogLinkWhatsApp(
+          businessInfo.name, // Business name
+          phoneNumber,
+          shareableLink,
+          businessInfo.name
+        );
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to send catalog link to ${phoneNumber}:`, error);
+      }
     }
+    
+    if (successCount > 0) {
+      toast.success(`Catalog shared with ${successCount} recipient(s)!`);
+      // Clear recipients after successful send
+      clearRecipients();
+    } else {
+      toast.error("Failed to share catalog with any recipients");
+    }
+  };
+  
+  const shareToAllContacts = async () => {
+    if (selectedProducts.length === 0) {
+      toast.error("Please select at least one product");
+      return;
+    }
+    
+    // In a real app, this would fetch contacts from an API
+    const mockContacts = [
+      "+91 98765 43210",
+      "+91 87654 32109",
+      "+91 76543 21098"
+    ];
+    
+    setRecipients(mockContacts);
+    toast.info(`Added ${mockContacts.length} contacts to recipients list`);
   };
 
   return (
@@ -177,7 +303,7 @@ View full catalog: ${shareableLink}`;
                 <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
                   <li>Select products you want to share</li>
                   <li>Customize your message</li>
-                  <li>Enter recipient's phone number</li>
+                  <li>Add recipient's phone numbers</li>
                   <li>Click "Share via WhatsApp"</li>
                 </ol>
               </CardContent>
@@ -341,20 +467,59 @@ View full catalog: ${shareableLink}`;
                   <div className="space-y-2">
                     <Label>Add Contacts</Label>
                     <div className="flex gap-2">
-                      <Input placeholder="Enter phone numbers (comma separated)" />
-                      <Button variant="outline" size="icon">
+                      <Input 
+                        placeholder="Enter phone number with country code" 
+                        value={newRecipient}
+                        onChange={(e) => setNewRecipient(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && addRecipient()}
+                      />
+                      <Button variant="outline" size="icon" onClick={addRecipient}>
                         <User className="w-4 h-4" />
                       </Button>
+                      <Button variant="outline" onClick={shareToAllContacts}>
+                        <Upload className="w-4 h-4 mr-2" />
+                        All Contacts
+                      </Button>
                     </div>
+                    
+                    {/* Display added recipients */}
+                    {recipients.length > 0 && (
+                      <div className="mt-2">
+                        <div className="flex flex-wrap gap-2">
+                          {recipients.map((recipient, index) => (
+                            <div 
+                              key={index} 
+                              className="flex items-center bg-primary/10 rounded-full px-3 py-1"
+                            >
+                              <span className="text-sm">{formatPhoneNumber(recipient)}</span>
+                              <button 
+                                onClick={() => removeRecipient(recipient)}
+                                className="ml-2 text-primary hover:text-primary/80"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={clearRecipients}
+                          className="mt-2 text-xs"
+                        >
+                          Clear All
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   
                   <Button 
                     className="w-full" 
                     onClick={shareCatalog}
-                    disabled={selectedProducts.length === 0}
+                    disabled={selectedProducts.length === 0 || recipients.length === 0}
                   >
                     <Share2 className="w-4 h-4 mr-2" />
-                    Share Catalog
+                    Share Catalog ({recipients.length} recipients)
                   </Button>
                 </div>
               </CardContent>

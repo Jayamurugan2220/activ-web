@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,106 +14,7 @@ import {
   Search,
   Filter
 } from "lucide-react";
-
-// Mock admin inventory data with multiple members
-const adminInventoryItems = [
-  {
-    id: "INV001",
-    memberId: "MEM001",
-    memberName: "John Doe Enterprises",
-    itemName: "Organic Cotton Textiles - 54 inches",
-    sku: "CT-54-ORG",
-    category: "Textiles",
-    currentStock: 150,
-    minStock: 50,
-    maxStock: 500,
-    unit: "meters",
-    price: 1200,
-    lastUpdated: "2024-01-15",
-    lowStock: false,
-    location: "Chennai"
-  },
-  {
-    id: "INV002",
-    memberId: "MEM001",
-    memberName: "John Doe Enterprises",
-    itemName: "Organic Cotton Textiles - 48 inches",
-    sku: "CT-48-ORG",
-    category: "Textiles",
-    currentStock: 30,
-    minStock: 50,
-    maxStock: 300,
-    unit: "meters",
-    price: 1100,
-    lastUpdated: "2024-01-14",
-    lowStock: true,
-    location: "Chennai"
-  },
-  {
-    id: "INV003",
-    memberId: "MEM002",
-    memberName: "Green Farms Co-op",
-    itemName: "Handcrafted Pottery - Small Bowl",
-    sku: "HP-SB-01",
-    category: "Handicrafts",
-    currentStock: 75,
-    minStock: 20,
-    maxStock: 200,
-    unit: "pieces",
-    price: 800,
-    lastUpdated: "2024-01-12",
-    lowStock: false,
-    location: "Coimbatore"
-  },
-  {
-    id: "INV004",
-    memberId: "MEM003",
-    memberName: "Artisan Collective",
-    itemName: "Handcrafted Pottery - Large Vase",
-    sku: "HP-LV-01",
-    category: "Handicrafts",
-    currentStock: 5,
-    minStock: 10,
-    maxStock: 50,
-    unit: "pieces",
-    price: 2500,
-    lastUpdated: "2024-01-10",
-    lowStock: true,
-    location: "Madurai"
-  },
-  {
-    id: "INV005",
-    memberId: "MEM004",
-    memberName: "Healthy Bites Ltd",
-    itemName: "Spices Collection - 500g Pack",
-    sku: "SC-500G",
-    category: "Food Products",
-    currentStock: 200,
-    minStock: 100,
-    maxStock: 1000,
-    unit: "packs",
-    price: 1500,
-    lastUpdated: "2024-01-08",
-    lowStock: false,
-    location: "Bangalore"
-  },
-  {
-    id: "INV006",
-    memberId: "MEM002",
-    memberName: "Green Farms Co-op",
-    itemName: "Organic Rice - 10kg Pack",
-    sku: "OR-10KG",
-    category: "Food Products",
-    currentStock: 25,
-    minStock: 50,
-    maxStock: 200,
-    unit: "packs",
-    price: 800,
-    lastUpdated: "2024-01-16",
-    lowStock: true,
-    location: "Coimbatore"
-  }
-];
+import inventoryService, { InventoryItem } from "@/services/inventoryService";
 
 const categories = [
   "All Categories",
@@ -133,38 +34,34 @@ const locations = [
 ];
 
 const AdminInventory = () => {
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedLocation, setSelectedLocation] = useState("All Locations");
   const [filter, setFilter] = useState("all");
   
-  const filteredItems = adminInventoryItems
-    .filter(item => 
-      item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.memberName.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter(item => 
-      selectedCategory === "All Categories" || item.category === selectedCategory
-    )
-    .filter(item => 
-      selectedLocation === "All Locations" || item.location === selectedLocation
-    )
-    .filter(item => {
-      if (filter === "all") return true;
-      if (filter === "low") return item.lowStock;
-      if (filter === "normal") return !item.lowStock;
-      return true;
-    });
+  // Load inventory items on component mount
+  useEffect(() => {
+    const items = inventoryService.getAllItems();
+    setInventoryItems(items);
+  }, []);
 
-  const totalItems = adminInventoryItems.length;
-  const lowStockItems = adminInventoryItems.filter(item => item.lowStock).length;
-  const totalValue = adminInventoryItems.reduce((sum, item) => sum + (item.currentStock * item.price), 0);
-  const uniqueMembers = Array.from(new Set(adminInventoryItems.map(item => item.memberId))).length;
+  const filteredItems = inventoryService.filterByStockStatus(
+    inventoryService.filterByLocation(
+      inventoryService.filterByCategory(
+        inventoryService.filterBySearch(inventoryItems, searchTerm),
+        selectedCategory
+      ),
+      selectedLocation
+    ),
+    filter
+  );
+
+  const stats = inventoryService.getStats();
 
   // Function to send WhatsApp alert
-  const sendWhatsAppAlert = (item: any) => {
-    const message = `⚠️ LOW STOCK ALERT ⚠️%0A%0AItem: ${item.itemName}%0ACurrent Stock: ${item.currentStock} ${item.unit}%0AMinimum Required: ${item.minStock} ${item.unit}%0AMember: ${item.memberName}%0ALocation: ${item.location}%0A%0APlease restock immediately.`;
+  const sendWhatsAppAlert = (item: InventoryItem) => {
+    const message = `⚠️ LOW STOCK ALERT ⚠️%0A%0AItem: ${item.name}%0ACurrent Stock: ${item.currentStock} ${item.unit}%0AMinimum Required: ${item.minStock} ${item.unit}%0AMember: ${item.memberName}%0ALocation: ${item.location}%0A%0APlease restock immediately.`;
     const whatsappUrl = `https://wa.me/?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -189,7 +86,7 @@ const AdminInventory = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Items</p>
-                  <p className="text-3xl font-bold">{totalItems}</p>
+                  <p className="text-3xl font-bold">{stats.totalItems}</p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                   <Package className="w-6 h-6 text-primary" />
@@ -203,7 +100,7 @@ const AdminInventory = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Low Stock Items</p>
-                  <p className="text-3xl font-bold text-amber-600">{lowStockItems}</p>
+                  <p className="text-3xl font-bold text-amber-600">{stats.lowStockItems}</p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
                   <AlertTriangle className="w-6 h-6 text-amber-600" />
@@ -217,7 +114,7 @@ const AdminInventory = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Inventory Value</p>
-                  <p className="text-3xl font-bold">₹{totalValue.toLocaleString()}</p>
+                  <p className="text-3xl font-bold">₹{stats.totalValue.toLocaleString()}</p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
                   <TrendingUp className="w-6 h-6 text-green-600" />
@@ -231,7 +128,7 @@ const AdminInventory = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Active Members</p>
-                  <p className="text-3xl font-bold">{uniqueMembers}</p>
+                  <p className="text-3xl font-bold">{stats.uniqueMembers}</p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
                   <Package className="w-6 h-6 text-blue-600" />
@@ -325,7 +222,7 @@ const AdminInventory = () => {
                       </td>
                       <td className="py-4">
                         <div>
-                          <p className="font-medium">{item.itemName}</p>
+                          <p className="font-medium">{item.name}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-sm">₹{item.price.toLocaleString()}</span>
                             {item.lowStock && (
@@ -392,7 +289,7 @@ const AdminInventory = () => {
         </Card>
 
         {/* Low Stock Alerts */}
-        {lowStockItems > 0 && (
+        {stats.lowStockItems > 0 && (
           <Card className="shadow-medium border-0 border-l-4 border-l-amber-500">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -403,10 +300,10 @@ const AdminInventory = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {adminInventoryItems.filter(item => item.lowStock).map(item => (
+                {inventoryItems.filter(item => item.lowStock).map(item => (
                   <div key={item.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
                     <div>
-                      <p className="font-medium">{item.itemName}</p>
+                      <p className="font-medium">{item.name}</p>
                       <p className="text-sm text-muted-foreground">
                         Member: {item.memberName} | Current: {item.currentStock} {item.unit} | Min: {item.minStock} {item.unit}
                       </p>

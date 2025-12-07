@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,56 +13,14 @@ import {
   MessageSquare,
   Smartphone
 } from "lucide-react";
+import inventoryService, { InventoryAlert } from "@/services/inventoryService";
+import notificationService from "@/services/notificationService";
 
-// Mock alert data
-const alerts = [
-  {
-    id: "ALERT001",
-    itemId: "INV002",
-    itemName: "Organic Cotton Textiles - 48 inches",
-    currentStock: 30,
-    minStock: 50,
-    category: "Textiles",
-    severity: "high",
-    date: "2024-01-15",
-    resolved: false
-  },
-  {
-    id: "ALERT002",
-    itemId: "INV004",
-    itemName: "Handcrafted Pottery - Large Vase",
-    currentStock: 5,
-    minStock: 10,
-    category: "Handicrafts",
-    severity: "high",
-    date: "2024-01-14",
-    resolved: false
-  },
-  {
-    id: "ALERT003",
-    itemId: "INV001",
-    itemName: "Organic Cotton Textiles - 54 inches",
-    currentStock: 150,
-    minStock: 50,
-    category: "Textiles",
-    severity: "medium",
-    date: "2024-01-10",
-    resolved: true
-  },
-  {
-    id: "ALERT004",
-    itemId: "INV005",
-    itemName: "Spices Collection - 500g Pack",
-    currentStock: 200,
-    minStock: 100,
-    category: "Food Products",
-    severity: "low",
-    date: "2024-01-05",
-    resolved: true
-  }
-];
+// Mock member ID for demonstration
+const MEMBER_ID = "MEM001";
 
 const InventoryAlerts = () => {
+  const [alerts, setAlerts] = useState<InventoryAlert[]>([]);
   const [activeTab, setActiveTab] = useState("active");
   const [alertPreferences, setAlertPreferences] = useState({
     email: true,
@@ -70,6 +28,12 @@ const InventoryAlerts = () => {
     whatsapp: true,
     app: true
   });
+
+  // Load alerts on component mount
+  useEffect(() => {
+    const loadedAlerts = inventoryService.getAlertsForMember(MEMBER_ID);
+    setAlerts(loadedAlerts);
+  }, []);
 
   const togglePreference = (type: keyof typeof alertPreferences) => {
     setAlertPreferences(prev => ({
@@ -92,16 +56,47 @@ const InventoryAlerts = () => {
   };
 
   const resolveAlert = (id: string) => {
-    // In a real app, this would update the backend
-    console.log("Resolving alert", id);
+    // Resolve the alert through the service
+    const success = inventoryService.resolveAlert(id);
+    if (success) {
+      // Update local state
+      setAlerts(prevAlerts => 
+        prevAlerts.map(alert => 
+          alert.id === id ? {...alert, resolved: true} : alert
+        )
+      );
+    }
   };
 
   // Function to send WhatsApp alert
-  const sendWhatsAppAlert = (alert: any) => {
-    const message = `⚠️ INVENTORY ALERT ⚠️%0A%0AItem: ${alert.itemName}%0ACurrent Stock: ${alert.currentStock} units%0AMinimum Required: ${alert.minStock} units%0ACategory: ${alert.category}%0ASeverity: ${alert.severity}%0A%0AAction required immediately.`;
-    const whatsappUrl = `https://wa.me/?text=${message}`;
-    window.open(whatsappUrl, '_blank');
+  const sendWhatsAppAlert = async (alert: InventoryAlert) => {
+    // Get the item details for more context
+    const items = inventoryService.getItemsForMember(MEMBER_ID);
+    const item = items.find(i => i.id === alert.itemId);
+    
+    if (item) {
+      // Use the notification service to send WhatsApp message
+      await notificationService.sendQRCodeWhatsApp(
+        alert.memberName || "Valued Member",
+        "+919876543210", // Mock phone number
+        `⚠️ INVENTORY ALERT ⚠️
+        
+Item: ${alert.itemName}
+Current Stock: ${alert.currentStock} units
+Minimum Required: ${alert.minStock} units
+Category: ${alert.category}
+Severity: ${alert.severity}
+
+Action required immediately.`,
+        alert.itemName
+      );
+    }
   };
+
+  // Stats calculation
+  const activeAlertsCount = alerts.filter(a => !a.resolved).length;
+  const highPriorityCount = alerts.filter(a => !a.resolved && a.severity === "high").length;
+  const resolvedTodayCount = alerts.filter(a => a.resolved && a.date === new Date().toISOString().split('T')[0]).length;
 
   return (
     <div className="min-h-screen p-4 pb-24">
@@ -124,7 +119,7 @@ const InventoryAlerts = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Active Alerts</p>
                   <p className="text-3xl font-bold text-red-600">
-                    {alerts.filter(a => !a.resolved).length}
+                    {activeAlertsCount}
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
@@ -140,7 +135,7 @@ const InventoryAlerts = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">High Priority</p>
                   <p className="text-3xl font-bold">
-                    {alerts.filter(a => !a.resolved && a.severity === "high").length}
+                    {highPriorityCount}
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
@@ -156,7 +151,7 @@ const InventoryAlerts = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Resolved Today</p>
                   <p className="text-3xl font-bold">
-                    {alerts.filter(a => a.resolved && a.date === "2024-01-15").length}
+                    {resolvedTodayCount}
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
@@ -260,7 +255,7 @@ const InventoryAlerts = () => {
             variant={activeTab === "active" ? "default" : "outline"} 
             onClick={() => setActiveTab("active")}
           >
-            Active Alerts ({alerts.filter(a => !a.resolved).length})
+            Active Alerts ({activeAlertsCount})
           </Button>
           <Button 
             variant={activeTab === "resolved" ? "default" : "outline"} 

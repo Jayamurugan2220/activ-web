@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,75 +14,10 @@ import {
   TrendingDown,
   MessageSquare
 } from "lucide-react";
+import inventoryService, { InventoryItem } from "@/services/inventoryService";
 
-// Mock inventory data
-const inventoryItems = [
-  {
-    id: "INV001",
-    name: "Organic Cotton Textiles - 54 inches",
-    sku: "CT-54-ORG",
-    category: "Textiles",
-    currentStock: 150,
-    minStock: 50,
-    maxStock: 500,
-    unit: "meters",
-    price: 1200,
-    lastUpdated: "2024-01-15",
-    lowStock: false
-  },
-  {
-    id: "INV002",
-    name: "Organic Cotton Textiles - 48 inches",
-    sku: "CT-48-ORG",
-    category: "Textiles",
-    currentStock: 30,
-    minStock: 50,
-    maxStock: 300,
-    unit: "meters",
-    price: 1100,
-    lastUpdated: "2024-01-14",
-    lowStock: true
-  },
-  {
-    id: "INV003",
-    name: "Handcrafted Pottery - Small Bowl",
-    sku: "HP-SB-01",
-    category: "Handicrafts",
-    currentStock: 75,
-    minStock: 20,
-    maxStock: 200,
-    unit: "pieces",
-    price: 800,
-    lastUpdated: "2024-01-12",
-    lowStock: false
-  },
-  {
-    id: "INV004",
-    name: "Handcrafted Pottery - Large Vase",
-    sku: "HP-LV-01",
-    category: "Handicrafts",
-    currentStock: 5,
-    minStock: 10,
-    maxStock: 50,
-    unit: "pieces",
-    price: 2500,
-    lastUpdated: "2024-01-10",
-    lowStock: true
-  },
-  {
-    id: "INV005",
-    name: "Spices Collection - 500g Pack",
-    sku: "SC-500G",
-    category: "Food Products",
-    currentStock: 200,
-    minStock: 100,
-    maxStock: 1000,
-    unit: "packs",
-    price: 1500,
-    lastUpdated: "2024-01-08",
-    lowStock: false
-  }
-];
+// Mock member ID for demonstration
+const MEMBER_ID = "MEM001";
 
 const categories = [
   "All Categories",
@@ -94,6 +29,7 @@ const categories = [
 ];
 
 const Inventory = () => {
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [filter, setFilter] = useState("all");
@@ -104,22 +40,21 @@ const Inventory = () => {
     maxStock: 0
   });
 
-  const filteredItems = inventoryItems
-    .filter(item => 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter(item => 
-      selectedCategory === "All Categories" || item.category === selectedCategory
-    )
-    .filter(item => {
-      if (filter === "all") return true;
-      if (filter === "low") return item.lowStock;
-      if (filter === "normal") return !item.lowStock;
-      return true;
-    });
+  // Load inventory items on component mount
+  useEffect(() => {
+    const items = inventoryService.getItemsForMember(MEMBER_ID);
+    setInventoryItems(items);
+  }, []);
 
-  const handleEdit = (item: any) => {
+  const filteredItems = inventoryService.filterByStockStatus(
+    inventoryService.filterByCategory(
+      inventoryService.filterBySearch(inventoryItems, searchTerm),
+      selectedCategory
+    ),
+    filter
+  );
+
+  const handleEdit = (item: InventoryItem) => {
     setEditingItem(item.id);
     setEditData({
       currentStock: item.currentStock,
@@ -128,9 +63,15 @@ const Inventory = () => {
     });
   };
 
-  const handleSave = (id: string) => {
-    // In a real app, this would update the backend
-    console.log("Saving item", id, editData);
+  const handleSave = async (id: string) => {
+    // Update the item through the service
+    const updatedItem = await inventoryService.updateStock(id, editData.currentStock);
+    if (updatedItem) {
+      // Update local state
+      setInventoryItems(prevItems => 
+        prevItems.map(item => item.id === id ? {...item, ...updatedItem} : item)
+      );
+    }
     setEditingItem(null);
   };
 
@@ -138,12 +79,10 @@ const Inventory = () => {
     setEditingItem(null);
   };
 
-  const totalItems = inventoryItems.length;
-  const lowStockItems = inventoryItems.filter(item => item.lowStock).length;
-  const totalValue = inventoryItems.reduce((sum, item) => sum + (item.currentStock * item.price), 0);
+  const stats = inventoryService.getStats(MEMBER_ID);
 
   // Function to send low stock alert
-  const sendLowStockAlert = (item: any) => {
+  const sendLowStockAlert = (item: InventoryItem) => {
     const message = `⚠️ LOW STOCK ALERT ⚠️%0A%0AItem: ${item.name}%0ACurrent Stock: ${item.currentStock} ${item.unit}%0AMinimum Required: ${item.minStock} ${item.unit}%0A%0APlease restock immediately.`;
     const whatsappUrl = `https://wa.me/?text=${message}`;
     window.open(whatsappUrl, '_blank');
@@ -173,7 +112,7 @@ const Inventory = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Items</p>
-                  <p className="text-3xl font-bold">{totalItems}</p>
+                  <p className="text-3xl font-bold">{stats.totalItems}</p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                   <Package className="w-6 h-6 text-primary" />
@@ -187,7 +126,7 @@ const Inventory = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Low Stock Items</p>
-                  <p className="text-3xl font-bold text-amber-600">{lowStockItems}</p>
+                  <p className="text-3xl font-bold text-amber-600">{stats.lowStockItems}</p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
                   <AlertTriangle className="w-6 h-6 text-amber-600" />
@@ -201,7 +140,7 @@ const Inventory = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Inventory Value</p>
-                  <p className="text-3xl font-bold">₹{totalValue.toLocaleString()}</p>
+                  <p className="text-3xl font-bold">₹{stats.totalValue.toLocaleString()}</p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
                   <TrendingUp className="w-6 h-6 text-green-600" />
@@ -385,7 +324,7 @@ const Inventory = () => {
         </Card>
 
         {/* Low Stock Alerts */}
-        {lowStockItems > 0 && (
+        {stats.lowStockItems > 0 && (
           <Card className="shadow-medium border-0 border-l-4 border-l-amber-500">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
