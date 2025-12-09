@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import EnhancedLoginPage from "./components/EnhancedLoginPage";
+import UnifiedLoginPage from "./components/UnifiedLoginPage";
 import MemberLogin from "./pages/member/Login";
 import ForgotPassword from "./pages/member/ForgotPassword";
 import BlockLogin from "./pages/admin/BlockLogin";
@@ -46,7 +46,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
-          <Route path="/login" element={<EnhancedLoginPage />} />
+          <Route path="/login" element={<UnifiedLoginPage />} />
           {/* Aliases for member-specific paths used in some pages */}
           <Route path="/member/login" element={<MemberLogin />} />
           <Route path="/member/register" element={<MemberRegister />} />

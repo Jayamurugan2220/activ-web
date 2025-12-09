@@ -16,7 +16,6 @@ interface ADFFormData {
   fullName: string;
   email: string;
   phone: string;
-  dateOfBirth: string;
   state: string;
   district: string;
   block: string;
@@ -33,7 +32,6 @@ const ADFForm = () => {
     fullName: "",
     email: "",
     phone: "",
-    dateOfBirth: "",
     state: "",
     district: "",
     block: "",
@@ -227,17 +225,6 @@ const ADFForm = () => {
                         name="fullName"
                         placeholder="Enter full name"
                         value={formData.fullName}
-                        onChange={handleInputChange}
-                        disabled={!isEditing}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dateOfBirth">Date of Birth*</Label>
-                      <Input
-                        id="dateOfBirth"
-                        name="dateOfBirth"
-                        type="date"
-                        value={formData.dateOfBirth}
                         onChange={handleInputChange}
                         disabled={!isEditing}
                       />

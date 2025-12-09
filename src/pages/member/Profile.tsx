@@ -18,8 +18,6 @@ type ProfileData = {
   lastName?: string;
   email: string;
   phone: string;
-  dateOfBirth?: string;
-  gender?: string;
   state?: string;
   district?: string;
   block?: string;
@@ -32,8 +30,6 @@ const defaultProfile: ProfileData = {
   lastName: "",
   email: "",
   phone: "",
-  dateOfBirth: "",
-  gender: "",
   state: "",
   district: "",
   block: "",
@@ -87,8 +83,6 @@ export default function MemberProfile() {
       values.lastName,
       values.email,
       values.phone,
-      values.dateOfBirth,
-      values.gender,
       values.state,
       values.district,
       values.block,
@@ -120,8 +114,6 @@ export default function MemberProfile() {
           lastName: data.lastName,
           email: data.email,
           phone: data.phone,
-          dateOfBirth: data.dateOfBirth,
-          gender: data.gender,
           state: data.state,
           district: data.district,
           block: data.block,
@@ -355,10 +347,6 @@ export default function MemberProfile() {
                           <div>
                             <Label>Email ID</Label>
                             <Input disabled value={watch('email') || ''} />
-                          </div>
-                          <div>
-                            <Label>Date of Birth</Label>
-                            <Input disabled value={watch('dateOfBirth') || ''} />
                           </div>
                         </div>
 
@@ -600,33 +588,6 @@ export default function MemberProfile() {
                       <Label htmlFor="phone">Phone Number*</Label>
                       <Input id="phone" {...register("phone", { required: "Phone required", pattern: { value: /^\+?\d{10,15}$/, message: "Invalid phone" } })} disabled={!isEditing} />
                       {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message}</p>}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                      <Input id="dateOfBirth" type="date" {...register("dateOfBirth")} disabled={!isEditing} />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="gender">Gender</Label>
-                      <Controller
-                        control={control}
-                        name="gender"
-                        render={({ field }) => (
-                          <Select value={field.value || ""} onValueChange={(v: string) => field.onChange(v)} disabled={!isEditing}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select gender" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="male">Male</SelectItem>
-                              <SelectItem value="female">Female</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
                     </div>
                   </div>
 

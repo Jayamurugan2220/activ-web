@@ -45,7 +45,7 @@ const MemberLogin = () => {
               if (profileJson.profile) {
                 localStorage.setItem('userProfile', JSON.stringify({ ...found, ...profileJson.profile }));
               } else {
-                // No profile stored on backend yet â€” try to upsert from local registration data
+                // No profile stored on backend yet — try to upsert from local registration data
                 try {
                   const regJson = localStorage.getItem('registrationData');
                   if (regJson) {
@@ -56,8 +56,6 @@ const MemberLogin = () => {
                       lastName: reg.lastName,
                       email: reg.email || found.email,
                       phone: reg.mobile || reg.phone,
-                      dateOfBirth: reg.dob || reg.dateOfBirth,
-                      gender: reg.gender,
                       state: reg.state || reg.stateName,
                       district: reg.district || reg.districtName,
                       block: reg.block,
@@ -168,7 +166,7 @@ const MemberLogin = () => {
           localStorage.setItem('userProfile', JSON.stringify(found));
         }
 
-        // Also keep a registrationData key (compatibility) â€” prefer the same data stored in userProfile
+        // Also keep a registrationData key (compatibility) — prefer the same data stored in userProfile
         try {
           const up = localStorage.getItem('userProfile');
           if (up) {
@@ -252,4 +250,3 @@ const MemberLogin = () => {
 };
 
 export default MemberLogin;
-
