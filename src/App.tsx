@@ -29,6 +29,7 @@ import MemberHelp from "./pages/member/Help";
 import MemberEvents from "./pages/member/Events";
 import Account from "./pages/member/Account";
 import PaymentHistory from "./pages/member/PaymentHistory";
+import BusinessProfile from "./pages/member/BusinessProfile";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminSidebarPage from "./pages/admin/SidebarPage";
 import Approvals from "./pages/admin/Approvals";
@@ -77,6 +78,7 @@ const App = () => (
             <Route path="/member/payment-success" element={<PaymentSuccess />} />
             <Route path="/member/help" element={<MemberHelp />} />
             <Route path="/member/events" element={<MemberEvents />} />
+            <Route path="/member/business-profile" element={<BusinessProfile />} />
           
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
