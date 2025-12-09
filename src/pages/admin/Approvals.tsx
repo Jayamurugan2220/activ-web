@@ -1,9 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CheckCircle, XCircle, Clock, Menu } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminMobileMenu from "@/components/AdminMobileMenu";
 import ApprovalCard from "@/components/ui/approval-card";
@@ -26,6 +26,7 @@ interface ApplicationRec {
 const Approvals = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [applications, setApplications] = useState<ApplicationRec[]>([]);
+  const [tab, setTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
   const role = (localStorage.getItem('role') || 'block_admin') as string;
 
   const stageByRole: Record<string, StageKey> = {
@@ -35,6 +36,45 @@ const Approvals = () => {
     block_admin: 'block',
     member: 'block',
   };
+
+  // Helpers to compute current stage and bucket by status
+  const desiredStage: StageKey = stageByRole[role] ?? 'block';
+  const getCurrentStage = (a: ApplicationRec): Stage | null => {
+    const idx = Math.max(1, Math.min(Number(a.stage) || 1, (a.stages || []).length)) - 1;
+    return a.stages?.[idx] ?? null;
+  };
+
+  const buckets = useMemo(() => {
+    const pending: ApplicationRec[] = [];
+    const approved: ApplicationRec[] = [];
+    const rejected: ApplicationRec[] = [];
+    const all: ApplicationRec[] = [...applications];
+    for (const a of applications) {
+      const st = getCurrentStage(a);
+      if (a.status === 'Rejected') {
+        rejected.push(a);
+        continue;
+      }
+      if (a.status === 'Ready for Payment') {
+        // treat as approved for listing purposes
+        approved.push(a);
+        continue;
+      }
+      if (st?.key === desiredStage) {
+        if (st.status === 'Under Review') pending.push(a);
+        else if (st.status === 'Approved') approved.push(a);
+        else if (st.status === 'Rejected') rejected.push(a);
+      }
+    }
+    return { pending, approved, rejected, all };
+  }, [applications, desiredStage]);
+
+  const stats = useMemo(() => ({
+    total: applications.length,
+    pending: buckets.pending.length,
+    approved: buckets.approved.length,
+    rejected: buckets.rejected.length,
+  }), [applications.length, buckets.pending.length, buckets.approved.length, buckets.rejected.length]);
 
   const load = async () => {
     try {
@@ -109,44 +149,77 @@ const Approvals = () => {
         <div className="flex-1 p-4 md:p-6 overflow-auto bg-background">
           <div className="w-full max-w-6xl mx-auto">
             <h1 className="text-2xl font-bold mb-6">Approvals</h1>
-            {/* Display applications for current admin stage */}
-            <div className="space-y-6">
-              {applications
-                .filter(app => {
-                  const desired = stageByRole[role];
-                  if (desired === 'payment') return app.status === 'Ready for Payment';
-                  const idx = Math.max(1, Math.min(Number(app.stage) || 1, (app.stages || []).length)) - 1;
-                  const stg = app.stages?.[idx];
-                  return stg?.key === desired && stg.status === 'Under Review';
-                })
-                .map(app => (
-                  <ApprovalCard 
-                    key={app.id} 
+            {/* Top statistics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card className="shadow-medium border-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Total</CardTitle>
+                  <CardDescription className="text-3xl font-bold">{stats.total}</CardDescription>
+                </CardHeader>
+              </Card>
+              <Card className="shadow-medium border-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Pending</CardTitle>
+                  <CardDescription className="text-3xl font-bold flex items-center gap-2"><Clock className="w-5 h-5" />{stats.pending}</CardDescription>
+                </CardHeader>
+              </Card>
+              <Card className="shadow-medium border-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Approved</CardTitle>
+                  <CardDescription className="text-3xl font-bold flex items-center gap-2"><CheckCircle className="w-5 h-5" />{stats.approved}</CardDescription>
+                </CardHeader>
+              </Card>
+              <Card className="shadow-medium border-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Rejected</CardTitle>
+                  <CardDescription className="text-3xl font-bold flex items-center gap-2"><XCircle className="w-5 h-5" />{stats.rejected}</CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <Button variant={tab === 'pending' ? 'default' : 'outline'} onClick={() => setTab('pending')}>Pending <Badge className="ml-2" variant="secondary">{stats.pending}</Badge></Button>
+              <Button variant={tab === 'approved' ? 'default' : 'outline'} onClick={() => setTab('approved')}>Approved <Badge className="ml-2" variant="secondary">{stats.approved}</Badge></Button>
+              <Button variant={tab === 'rejected' ? 'default' : 'outline'} onClick={() => setTab('rejected')}>Rejected <Badge className="ml-2" variant="secondary">{stats.rejected}</Badge></Button>
+              <Button variant={tab === 'all' ? 'default' : 'outline'} onClick={() => setTab('all')}>All <Badge className="ml-2" variant="secondary">{stats.total}</Badge></Button>
+            </div>
+
+            {/* Tab content */}
+            {tab === 'pending' && (
+              <div className="space-y-6">
+                {buckets.pending.map(app => (
+                  <ApprovalCard
+                    key={app.id}
                     member={{
                       id: app.id,
                       name: app.profile?.profile?.profile?.firstName || app.userId,
                       email: app.profile?.profile?.profile?.email || '',
                       role: role,
-                      gender: '', sector: '', phone: '',
-                      status: 'pending', date: app.submittedAt,
-                    }} 
-                    onApprove={handleApprove} 
-                    onReject={handleReject} 
+                      gender: '', sector: '', phone: ''
+                    }}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
                   />
-                ))
-              }
-            </div>
-            {/* Display completed items */}
-            {applications.some(app => app.status === 'Rejected' || app.status === 'Ready for Payment') && (
-              <Card className="shadow-medium border-0 mt-6">
-                <CardHeader>
-                  <CardTitle>Application History</CardTitle>
-                </CardHeader>
+                ))}
+                {buckets.pending.length === 0 && (
+                  <Card className="shadow-medium border-0">
+                    <CardContent className="p-6 text-center text-muted-foreground">No pending applications.</CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {tab !== 'pending' && (
+              <Card className="shadow-medium border-0">
                 <CardContent>
                   <div className="space-y-4">
-                    {applications
-                      .filter(app => app.status === 'Rejected' || app.status === 'Ready for Payment')
-                      .map((app) => (
+                    {(tab === 'approved' ? buckets.approved : tab === 'rejected' ? buckets.rejected : buckets.all).map(app => {
+                      const stg = getCurrentStage(app);
+                      const statusLabel = app.status === 'Rejected' ? 'Rejected' : (app.status === 'Ready for Payment' ? 'Ready for Payment' : (stg?.status || ''));
+                      const isApproved = statusLabel === 'Approved' || statusLabel === 'Ready for Payment';
+                      const isRejected = statusLabel === 'Rejected';
+                      return (
                         <div key={app.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                           <div className="flex items-center gap-3">
                             <Avatar>
@@ -160,17 +233,21 @@ const Approvals = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <Badge 
-                              variant={app.status === 'Ready for Payment' ? 'default' : 'destructive'}
-                              className={app.status === 'Ready for Payment' ? 'bg-success' : 'bg-destructive'}
+                            <Badge
+                              variant={isApproved ? 'default' : isRejected ? 'destructive' : 'secondary'}
+                              className={isApproved ? 'bg-success' : isRejected ? 'bg-destructive' : ''}
                             >
-                              {app.status === 'Ready for Payment' && <CheckCircle className="w-4 h-4 mr-1" />}
-                              {app.status === 'Rejected' && <XCircle className="w-4 h-4 mr-1" />}
-                              {app.status}
+                              {isApproved && <CheckCircle className="w-4 h-4 mr-1" />}
+                              {isRejected && <XCircle className="w-4 h-4 mr-1" />}
+                              {statusLabel || '—'}
                             </Badge>
                           </div>
                         </div>
-                      ))}
+                      );
+                    })}
+                    {(tab === 'approved' ? buckets.approved : tab === 'rejected' ? buckets.rejected : buckets.all).length === 0 && (
+                      <div className="p-6 text-center text-muted-foreground">No records.</div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -11,6 +11,7 @@ import ForgotPassword from "./pages/member/ForgotPassword";
 import BlockLogin from "./pages/admin/BlockLogin";
 import DistrictLogin from "./pages/admin/DistrictLogin";
 import StateLogin from "./pages/admin/StateLogin";
+import StateAdminRegister from "./pages/admin/StateAdminRegister";
 import SuperAdminLogin from "./pages/admin/SuperAdminLogin";
 import MemberRegister from "./pages/member/Register";
 import MemberDashboard from "./pages/member/Dashboard";
@@ -57,6 +58,7 @@ const App = () => (
           <Route path="/admin/block/login" element={<BlockLogin />} />
           <Route path="/admin/district/login" element={<DistrictLogin />} />
           <Route path="/admin/state/login" element={<StateLogin />} />
+          <Route path="/admin/state/register" element={<StateAdminRegister />} />
           <Route path="/admin/super/login" element={<SuperAdminLogin />} />
 
           {/* Member Routes */}

@@ -82,6 +82,17 @@ const StateLogin = () => {
             </Button>
           </form>
           
+          <div className="mt-6 text-center text-sm">
+            <p className="text-muted-foreground mb-2">Don't have an account?</p>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => navigate("/admin/state-register")}
+            >
+              Request State Admin Registration
+            </Button>
+          </div>
+          
           <div className="mt-6 p-4 bg-muted rounded-lg">
             <h3 className="font-semibold text-sm mb-2">Default Credentials:</h3>
             <ul className="text-xs space-y-1">
